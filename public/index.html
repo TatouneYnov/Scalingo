@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Loldle - Devine le Champion</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🎮 LOLDLE</h1>
+            <p class="subtitle">Devine le champion de League of Legends !</p>
+        </header>
+
+        <div class="game-info">
+            <p>Trouve le champion du jour en utilisant les indices !</p>
+        </div>
+
+        <div class="search-container">
+            <input 
+                type="text" 
+                id="championSearch" 
+                placeholder="Tape le nom d'un champion..." 
+                autocomplete="off"
+                disabled
+            >
+            <div id="suggestions" class="suggestions"></div>
+        </div>
+
+        <div id="guesses" class="guesses-container"></div>
+
+        <div id="winMessage" class="win-message hidden">
+            <div class="win-content">
+                <h2>🎉 Félicitations !</h2>
+                <p id="winText"></p>
+                <button onclick="location.reload()" class="play-again-btn">Rejouer demain</button>
+            </div>
+        </div>
+
+        <div class="legend">
+            <h3>Légende :</h3>
+            <div class="legend-items">
+                <div class="legend-item">
+                    <span class="legend-box correct"></span>
+                    <span>Correct</span>
+                </div>
+                <div class="legend-item">
+                    <span class="legend-box partial"></span>
+                    <span>Partiellement correct</span>
+                </div>
+                <div class="legend-item">
+                    <span class="legend-box incorrect"></span>
+                    <span>Incorrect</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>

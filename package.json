@@ -1,6 +1,7 @@
 {
-  "name" : "my-application",
+  "name" : "loldle-clone",
   "version" : "1.0.0",
+  "description": "A Loldle-like guessing game for League of Legends champions",
   "dependencies" : {
     "express" : "4.x"
   },
