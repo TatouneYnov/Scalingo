@@ -8,6 +8,7 @@ const suggestionsDiv = document.getElementById('suggestions');
 const guessesDiv = document.getElementById('guesses');
 const winMessage = document.getElementById('winMessage');
 const winText = document.getElementById('winText');
+const newGameBtn = document.getElementById('newGameBtn');
 
 async function init() {
     try {
@@ -31,6 +32,7 @@ function setupEventListeners() {
     searchInput.addEventListener('input', handleSearchInput);
     searchInput.addEventListener('keydown', handleKeyDown);
     document.addEventListener('click', closeSuggestions);
+    newGameBtn.addEventListener('click', startNewGame);
 }
 
 function handleSearchInput(e) {
@@ -87,7 +89,8 @@ function closeSuggestions(e) {
 async function selectChampion(championId) {
     if (gameWon) return;
     
-    if (guesses.some(g => g.comparison.name === championId)) {
+    const champ = champions.find(c => c.id == championId);
+    if (guesses.some(g => g.comparison.name === champ.name)) {
         alert('Tu as déjà essayé ce champion !');
         return;
     }
@@ -109,7 +112,7 @@ async function selectChampion(championId) {
         searchInput.value = '';
         suggestionsDiv.classList.remove('show');
         
-        displayGuesses();
+        addLatestGuess();
         
         if (result.correct) {
             handleWin(result.champion);
@@ -118,6 +121,31 @@ async function selectChampion(championId) {
     } catch (error) {
         console.error('Error submitting guess:', error);
         alert('Erreur lors de la soumission de la réponse.');
+    }
+}
+
+function addLatestGuess() {
+    if (!headerAdded) {
+        guessesDiv.innerHTML = `
+            <div class="guess-header">
+                <div class="guess-header-cell">Champion</div>
+                <div class="guess-header-cell">Genre</div>
+                <div class="guess-header-cell">Sexe</div>
+                <div class="guess-header-cell">Portée</div>
+                <div class="guess-header-cell">Année</div>
+                <div class="guess-header-cell">Région</div>
+                <div class="guess-header-cell">Lane</div>
+            </div>
+        `;
+        headerAdded = true;
+    }
+    
+    const header = guessesDiv.querySelector('.guess-header');
+    const row = createGuessRow(guesses[0]);
+    if (header) {
+        header.after(row);
+    } else {
+        guessesDiv.appendChild(row);
     }
 }
 
@@ -237,13 +265,11 @@ function translateLane(lane) {
 }
 
 function saveGuesses() {
-    const today = new Date().toISOString().split('T')[0];
-    localStorage.setItem(`loldle_guesses_${today}`, JSON.stringify(guesses));
+    localStorage.setItem('loldle_guesses', JSON.stringify(guesses));
 }
 
 function loadSavedGuesses() {
-    const today = new Date().toISOString().split('T')[0];
-    const saved = localStorage.getItem(`loldle_guesses_${today}`);
+    const saved = localStorage.getItem('loldle_guesses');
     
     if (saved) {
         guesses = JSON.parse(saved);
@@ -256,8 +282,35 @@ function loadSavedGuesses() {
 }
 
 function saveGameState() {
-    const today = new Date().toISOString().split('T')[0];
-    localStorage.setItem(`loldle_won_${today}`, 'true');
+    localStorage.setItem('loldle_won', 'true');
+}
+
+function startNewGame() {
+    if (confirm('Voulez-vous vraiment recommencer une nouvelle partie ? Votre progression sera perdue.')) {
+        fetch('/api/new-game', { method: 'POST' })
+            .then(response => {
+                if (!response.ok) throw new Error('Erreur serveur');
+                return response.json();
+            })
+            .then(data => {
+                localStorage.removeItem('loldle_guesses');
+                localStorage.removeItem('loldle_won');
+                
+                guesses = [];
+                gameWon = false;
+                headerAdded = false;
+                
+                guessesDiv.innerHTML = '';
+                winMessage.classList.add('hidden');
+                searchInput.disabled = false;
+                searchInput.value = '';
+                searchInput.focus();
+            })
+            .catch(error => {
+                console.error('Erreur lors de la nouvelle partie:', error);
+                alert('Erreur lors du démarrage d\'une nouvelle partie');
+            });
+    }
 }
 
 init();

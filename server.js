@@ -4,7 +4,8 @@ const {
   initDatabase,
   getAllChampions,
   getChampionById,
-  getDailyChampion,
+  getCurrentChampion,
+  generateNewGameChampion,
   compareChampions
 } = require('./database');
 
@@ -24,12 +25,11 @@ app.get('/api/champions', (req, res) => {
   }
 });
 
-app.get('/api/daily', (req, res) => {
+app.get('/api/current', (req, res) => {
   try {
-    const daily = getDailyChampion();
+    const current = getCurrentChampion();
     res.json({ 
-      exists: true,
-      date: new Date().toISOString().split('T')[0]
+      exists: true
     });
   } catch (error) {
     res.status(500).json({ error: 'Internal server error' });
@@ -49,18 +49,27 @@ app.post('/api/guess', (req, res) => {
       return res.status(404).json({ error: 'Champion not found' });
     }
 
-    const dailyChampion = getDailyChampion();
-    const comparison = compareChampions(guessedChampion, dailyChampion);
+    const currentChampion = getCurrentChampion();
+    const comparison = compareChampions(guessedChampion, currentChampion);
     
-    const isCorrect = championId === dailyChampion.id;
+    const isCorrect = championId === currentChampion.id;
     
     res.json({
       correct: isCorrect,
       comparison,
-      ...(isCorrect && { champion: dailyChampion })
+      ...(isCorrect && { champion: currentChampion })
     });
   } catch (error) {
     console.error('Error processing guess:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+app.post('/api/new-game', (req, res) => {
+  try {
+    generateNewGameChampion();
+    res.json({ success: true, message: 'New game started' });
+  } catch (error) {
     res.status(500).json({ error: 'Internal server error' });
   }
 });

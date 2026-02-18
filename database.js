@@ -5,11 +5,12 @@ let champions = JSON.parse(
   fs.readFileSync(path.join(__dirname, 'champions.json'), 'utf-8')
 );
 
-let dailyChampion = null;
-let dailyDate = null;
+let currentChampion = null;
+let gameId = null;
 
 function initDatabase() {
   console.log(`Loaded ${champions.length} champions`);
+  generateNewGameChampion();
 }
 
 function getAllChampions() {
@@ -20,17 +21,19 @@ function getChampionById(id) {
   return champions.find(c => c.id === id);
 }
 
-function getDailyChampion() {
-  const today = new Date().toISOString().split('T')[0];
-  
-  if (!dailyChampion || dailyDate !== today) {
-    const randomIndex = Math.floor(Math.random() * champions.length);
-    dailyChampion = champions[randomIndex];
-    dailyDate = today;
-    console.log(`Daily champion for ${today}:`, dailyChampion.name);
+function generateNewGameChampion() {
+  const randomIndex = Math.floor(Math.random() * champions.length);
+  currentChampion = champions[randomIndex];
+  gameId = Math.random().toString(36).substr(2, 9);
+  console.log(`New game champion:`, currentChampion.name);
+  return currentChampion;
+}
+
+function getCurrentChampion() {
+  if (!currentChampion) {
+    generateNewGameChampion();
   }
-  
-  return dailyChampion;
+  return currentChampion;
 }
 
 function compareChampions(guess, target) {
@@ -103,6 +106,7 @@ module.exports = {
   initDatabase,
   getAllChampions,
   getChampionById,
-  getDailyChampion,
+  getCurrentChampion,
+  generateNewGameChampion,
   compareChampions
 };
