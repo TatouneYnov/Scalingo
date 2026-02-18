@@ -1,11 +1,12 @@
 {
-  "name" : "loldle-clone",
-  "version" : "1.0.0",
+  "name": "loldle-clone",
+  "version": "1.0.0",
   "description": "A Loldle-like guessing game for League of Legends champions",
-  "dependencies" : {
-    "express" : "4.x"
+  "dependencies": {
+    "dotenv": "^17.3.1",
+    "express": "4.x"
   },
-  "scripts" : {
+  "scripts": {
     "start": "node server.js"
   }
 }
