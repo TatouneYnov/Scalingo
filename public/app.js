@@ -44,7 +44,8 @@ function handleSearchInput(e) {
     }
     
     const filtered = champions.filter(champ => 
-        champ.name.toLowerCase().includes(query)
+        champ.name.toLowerCase().includes(query) &&
+        !guesses.some(g => g.comparison.name === champ.name)
     ).slice(0, 10);
     
     if (filtered.length > 0) {
@@ -67,7 +68,7 @@ function handleKeyDown(e) {
 function displaySuggestions(filtered) {
     suggestionsDiv.innerHTML = filtered.map(champ => `
         <div class="suggestion-item" data-champion-id="${champ.id}">
-            <strong>${champ.name}</strong> - ${champ.title}
+            ${champ.name}
         </div>
     `).join('');
     
