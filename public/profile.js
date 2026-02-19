@@ -19,6 +19,14 @@ async function init() {
     
     await loadProfile();
     renderProfilePictures();
+    
+    // Setup file input listener
+    const fileInput = document.getElementById('customPictureInput');
+    fileInput.addEventListener('change', (e) => {
+        if (e.target.files && e.target.files[0]) {
+            uploadCustomPicture(e.target.files[0]);
+        }
+    });
 }
 
 async function loadProfile() {
@@ -40,7 +48,13 @@ async function loadProfile() {
         
         const pictureEl = document.getElementById('profilePicture');
         if (profile.profile_picture && profile.profile_picture !== 'default.png') {
-            pictureEl.textContent = profile.profile_picture;
+            // Check if it's a custom uploaded image (starts with /uploads/)
+            if (profile.profile_picture.startsWith('/uploads/')) {
+                pictureEl.innerHTML = `<img src="${profile.profile_picture}" style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover;">`;
+            } else {
+                // It's an emoji
+                pictureEl.textContent = profile.profile_picture;
+            }
         }
         
     } catch (error) {
@@ -80,6 +94,77 @@ async function selectProfilePicture(picture) {
         
     } catch (error) {
         console.error('Failed to update profile picture:', error);
+    }
+}
+
+async function uploadCustomPicture(file) {
+    const statusEl = document.getElementById('uploadStatus');
+    
+    if (!file) {
+        statusEl.textContent = 'Aucun fichier sélectionné';
+        statusEl.style.color = '#ff6b6b';
+        return;
+    }
+    
+    // Validate file size (5MB max)
+    if (file.size > 5 * 1024 * 1024) {
+        statusEl.textContent = 'Fichier trop volumineux (max 5 MB)';
+        statusEl.style.color = '#ff6b6b';
+        return;
+    }
+    
+    // Validate file type
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+    if (!allowedTypes.includes(file.type)) {
+        statusEl.textContent = 'Type de fichier invalide';
+        statusEl.style.color = '#ff6b6b';
+        return;
+    }
+    
+    statusEl.textContent = 'Téléchargement...';
+    statusEl.style.color = '#999';
+    
+    try {
+        const formData = new FormData();
+        formData.append('profilePicture', file);
+        formData.append('userId', currentUser.id);
+        
+        const response = await fetch('/api/profile/upload', {
+            method: 'POST',
+            body: formData
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok && data.success) {
+            statusEl.textContent = '✓ Image téléchargée avec succès !';
+            statusEl.style.color = '#2d9f2d';
+            
+            // Update profile picture display
+            const pictureEl = document.getElementById('profilePicture');
+            pictureEl.innerHTML = `<img src="${data.pictureUrl}" style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover;">`;
+            
+            // Update localStorage
+            currentUser.profilePicture = data.pictureUrl;
+            localStorage.setItem('user', JSON.stringify(currentUser));
+            
+            // Clear selected emoji if any
+            document.querySelectorAll('.profile-pic-option').forEach(el => {
+                el.classList.remove('selected');
+            });
+            
+            // Clear input
+            document.getElementById('customPictureInput').value = '';
+            
+        } else {
+            statusEl.textContent = '✗ Erreur: ' + (data.error || 'Échec du téléchargement');
+            statusEl.style.color = '#ff6b6b';
+        }
+        
+    } catch (error) {
+        console.error('Upload failed:', error);
+        statusEl.textContent = '✗ Erreur de téléchargement';
+        statusEl.style.color = '#ff6b6b';
     }
 }
 

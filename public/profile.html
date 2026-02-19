@@ -54,6 +54,18 @@
             <h3>Choisir une photo de profil</h3>
             <div class="profile-pictures-grid" id="profilePicturesGrid"></div>
         </div>
+
+        <div class="custom-upload-section">
+            <h3>Ou télécharger une image personnalisée</h3>
+            <div class="upload-container">
+                <input type="file" id="customPictureInput" accept="image/*" style="display: none;">
+                <button class="upload-btn" onclick="document.getElementById('customPictureInput').click()">
+                    📁 Choisir une image
+                </button>
+                <span id="uploadStatus" class="upload-status"></span>
+            </div>
+            <p class="upload-info">Format: JPG, PNG, GIF, WebP • Max: 5 MB</p>
+        </div>
     </div>
 
     <script src="profile.js"></script>

@@ -2,6 +2,8 @@ require('dotenv').config();
 
 const express = require('express');
 const path = require('path');
+const multer = require('multer');
+const fs = require('fs');
 const {
   initializeDatabase,
   getAllChampions,
@@ -33,6 +35,38 @@ const app = express();
 
 app.use(express.json());
 app.use(express.static('public'));
+
+// Multer configuration for profile picture uploads
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    const uploadDir = path.join(__dirname, 'public', 'uploads', 'profiles');
+    if (!fs.existsSync(uploadDir)) {
+      fs.mkdirSync(uploadDir, { recursive: true });
+    }
+    cb(null, uploadDir);
+  },
+  filename: function (req, file, cb) {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    cb(null, 'profile-' + uniqueSuffix + path.extname(file.originalname));
+  }
+});
+
+const fileFilter = (req, file, cb) => {
+  const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+  if (allowedTypes.includes(file.mimetype)) {
+    cb(null, true);
+  } else {
+    cb(new Error('Invalid file type. Only JPEG, PNG, GIF, and WebP are allowed.'), false);
+  }
+};
+
+const upload = multer({
+  storage: storage,
+  fileFilter: fileFilter,
+  limits: {
+    fileSize: 5 * 1024 * 1024 // 5MB max
+  }
+});
 
 async function start() {
   await initializeDatabase();
@@ -207,6 +241,39 @@ app.post('/api/profile/picture', async (req, res) => {
     res.json({ success: true });
   } catch (error) {
     res.status(500).json({ error: 'Failed to update profile picture' });
+  }
+});
+
+app.post('/api/profile/upload', upload.single('profilePicture'), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: 'No file uploaded' });
+    }
+    
+    const { userId } = req.body;
+    if (!userId) {
+      // Delete the uploaded file if no userId
+      fs.unlinkSync(req.file.path);
+      return res.status(400).json({ error: 'User ID is required' });
+    }
+    
+    // Generate the URL path for the uploaded file
+    const pictureUrl = `/uploads/profiles/${req.file.filename}`;
+    
+    // Update user's profile picture in database
+    await updateProfilePicture(userId, pictureUrl);
+    
+    res.json({ 
+      success: true, 
+      pictureUrl: pictureUrl 
+    });
+  } catch (error) {
+    // Clean up uploaded file on error
+    if (req.file) {
+      fs.unlinkSync(req.file.path);
+    }
+    console.error('Upload error:', error);
+    res.status(500).json({ error: 'Failed to upload profile picture' });
   }
 });
 
