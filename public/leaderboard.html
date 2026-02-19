@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Classement - LOLDLAHESS</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="auth.css">
+</head>
+<body>
+    <nav class="nav-bar">
+        <div class="nav-links">
+            <a href="/">🎮 Jouer</a>
+            <a href="/leaderboard.html">🏆 Classement</a>
+            <a href="/profile.html">👤 Profil</a>
+        </div>
+        <div class="user-menu">
+            <span id="navUsername"></span>
+            <button class="logout-btn" onclick="logout()">Déconnexion</button>
+        </div>
+    </nav>
+
+    <div class="container">
+        <header style="text-align: center; margin-bottom: 30px;">
+            <h1>🏆 Classement Mensuel</h1>
+            <p class="subtitle">Moins d'essais = Meilleur rang</p>
+        </header>
+
+        <div class="leaderboard-header" style="background: #2a2a2a; padding: 20px; border-radius: 8px; margin-bottom: 20px; text-align: center;">
+            <h3 id="currentMonth">Février 2026</h3>
+            <p style="color: #999;">Chaque victoire daily ajoute le nombre d'essais à votre score total</p>
+        </div>
+
+        <div class="leaderboard-table" style="background: #2a2a2a; border: 1px solid #444; border-radius: 8px; padding: 20px;">
+            <table style="width: 100%; border-collapse: collapse;">
+                <thead>
+                    <tr style="border-bottom: 2px solid #444;">
+                        <th style="padding: 15px; text-align: left; color: #999;">Rang</th>
+                        <th style="padding: 15px; text-align: left; color: #999;">Joueur</th>
+                        <th style="padding: 15px; text-align: center; color: #999;">Total Essais</th>
+                        <th style="padding: 15px; text-align: center; color: #999;">Victoires</th>
+                        <th style="padding: 15px; text-align: center; color: #999;">Moyenne</th>
+                    </tr>
+                </thead>
+                <tbody id="leaderboardBody">
+                    <tr>
+                        <td colspan="5" style="text-align: center; padding: 40px; color: #999;">
+                            Chargement...
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script src="leaderboard.js"></script>
+</body>
+</html>

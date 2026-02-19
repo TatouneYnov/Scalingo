@@ -24,9 +24,43 @@ async function initializeDatabase() {
         UNIQUE(date, user_id)
       );
       
+      CREATE TABLE IF NOT EXISTS users (
+        id BIGSERIAL PRIMARY KEY,
+        username TEXT UNIQUE NOT NULL,
+        password_hash TEXT NOT NULL,
+        profile_picture TEXT DEFAULT 'default.png',
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        last_login TIMESTAMPTZ
+      );
+      
+      CREATE TABLE IF NOT EXISTS user_stats (
+        user_id BIGINT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+        current_streak INTEGER DEFAULT 0,
+        longest_streak INTEGER DEFAULT 0,
+        total_daily_wins INTEGER DEFAULT 0,
+        last_daily_win_date TEXT,
+        updated_at TIMESTAMPTZ DEFAULT NOW()
+      );
+      
+      CREATE TABLE IF NOT EXISTS monthly_scores (
+        id BIGSERIAL PRIMARY KEY,
+        user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        year_month TEXT NOT NULL,
+        total_attempts INTEGER DEFAULT 0,
+        games_won INTEGER DEFAULT 0,
+        updated_at TIMESTAMPTZ DEFAULT NOW(),
+        UNIQUE(user_id, year_month)
+      );
+      
+      ALTER TABLE daily_scores ADD COLUMN IF NOT EXISTS user_id_fk BIGINT REFERENCES users(id) ON DELETE CASCADE;
+      ALTER TABLE champions ADD COLUMN IF NOT EXISTS image_url TEXT;
+      
       CREATE INDEX IF NOT EXISTS idx_games_mode ON games(mode);
       CREATE INDEX IF NOT EXISTS idx_games_date_key ON games(date_key);
       CREATE INDEX IF NOT EXISTS idx_daily_scores_date ON daily_scores(date);
+      CREATE INDEX IF NOT EXISTS idx_users_username ON users(username);
+      CREATE INDEX IF NOT EXISTS idx_monthly_scores_year_month ON monthly_scores(year_month);
+      CREATE INDEX IF NOT EXISTS idx_monthly_scores_user_id ON monthly_scores(user_id);
     `;
     
     await pool.query(migrations);

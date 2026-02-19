@@ -17,6 +17,18 @@ const {
   saveDailyScore
 } = require('./database');
 
+const {
+  registerUser,
+  loginUser,
+  verifyToken,
+  getUserProfile,
+  updateProfilePicture,
+  updateUserStats,
+  updateMonthlyScore,
+  getMonthlyLeaderboard,
+  getUserMonthlyRank
+} = require('./auth');
+
 const app = express();
 
 app.use(express.json());
@@ -76,6 +88,13 @@ app.post('/api/daily-score', async (req, res) => {
       return res.status(400).json({ error: 'Missing userId or attempts' });
     }
     await saveDailyScore(userId, attempts);
+    
+    // Update user stats and monthly score if authenticated user
+    if (!isNaN(userId)) {
+      await updateUserStats(parseInt(userId), true);
+      await updateMonthlyScore(parseInt(userId), attempts);
+    }
+    
     res.json({ success: true });
   } catch (error) {
     res.status(500).json({ error: 'Internal server error' });
@@ -134,4 +153,69 @@ app.post('/api/new-game', async (req, res) => {
 
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
+
+// Auth endpoints
+app.post('/api/auth/register', async (req, res) => {
+  try {
+    const { username, password } = req.body;
+    
+    if (!username || !password) {
+      return res.status(400).json({ error: 'Username and password required' });
+    }
+    
+    if (password.length < 6) {
+      return res.status(400).json({ error: 'Password must be at least 6 characters' });
+    }
+    
+    const user = await registerUser(username, password);
+    res.json({ success: true, user });
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+app.post('/api/auth/login', async (req, res) => {
+  try {
+    const { username, password } = req.body;
+    
+    if (!username || !password) {
+      return res.status(400).json({ error: 'Username and password required' });
+    }
+    
+    const result = await loginUser(username, password);
+    res.json(result);
+  } catch (error) {
+    res.status(401).json({ error: error.message });
+  }
+});
+
+app.get('/api/profile/:userId', async (req, res) => {
+  try {
+    const profile = await getUserProfile(req.params.userId);
+    const monthlyRank = await getUserMonthlyRank(req.params.userId);
+    res.json({ ...profile, monthlyRank });
+  } catch (error) {
+    res.status(404).json({ error: error.message });
+  }
+});
+
+app.post('/api/profile/picture', async (req, res) => {
+  try {
+    const { userId, pictureUrl } = req.body;
+    await updateProfilePicture(userId, pictureUrl);
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to update profile picture' });
+  }
+});
+
+app.get('/api/leaderboard/monthly', async (req, res) => {
+  try {
+    const yearMonth = req.query.month;
+    const leaderboard = await getMonthlyLeaderboard(yearMonth);
+    res.json({ leaderboard, month: yearMonth || new Date().toISOString().slice(0, 7) });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to fetch leaderboard' });
+  }
 });

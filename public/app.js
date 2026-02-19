@@ -5,6 +5,7 @@ let headerAdded = false;
 let currentGameId = null;
 let currentMode = 'unlimited';
 let currentUserId = null;
+let currentUser = null;
 
 const searchInput = document.getElementById('championSearch');
 const suggestionsDiv = document.getElementById('suggestions');
@@ -17,12 +18,22 @@ const leaderboard = document.getElementById('leaderboard');
 
 async function init() {
     try {
+        currentUser = JSON.parse(localStorage.getItem('user') || 'null');
+        
+        if (!currentUser || !currentUser.id) {
+            window.location.href = '/login.html';
+            return;
+        }
+        
+        currentUserId = currentUser.id;
+        
+        setupNavBar();
+        
         const response = await fetch('/api/champions');
         champions = await response.json();
         
         const stored = JSON.parse(localStorage.getItem('loldle_user') || '{}');
         currentMode = stored.mode;
-        currentUserId = stored.userId || generateUserId();
         
         setupEventListeners();
         
@@ -43,8 +54,23 @@ async function init() {
     }
 }
 
-function generateUserId() {
-    return 'user_' + Math.random().toString(36).substr(2, 9);
+function setupNavBar() {
+    const header = document.querySelector('header');
+    const navBar = document.createElement('div');
+    navBar.className = 'nav-bar';
+    navBar.style.cssText = 'display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding: 10px 0;';
+    navBar.innerHTML = `
+        <div class="nav-links" style="display: flex; gap: 20px;">
+            <a href="/" style="color: #2d9f2d; text-decoration: none; font-weight: bold;">🎮 Jouer</a>
+            <a href="/leaderboard.html" style="color: #e0e0e0; text-decoration: none;">🏆 Classement</a>
+            <a href="/profile.html" style="color: #e0e0e0; text-decoration: none;">👤 Profil</a>
+        </div>
+        <div style="display: flex; align-items: center; gap: 15px;">
+            <span style="color: #999;">${currentUser.username}</span>
+            <button onclick="logout()" style="background: #5f2d2d; color: #e0e0e0; border: 1px solid #7f3d3d; padding: 6px 12px; border-radius: 6px; cursor: pointer;">Déconnexion</button>
+        </div>
+    `;
+    header.insertBefore(navBar, header.firstChild);
 }
 
 function showModeSelector() {
@@ -159,8 +185,11 @@ function handleKeyDown(e) {
 
 function displaySuggestions(filtered) {
     suggestionsDiv.innerHTML = filtered.map(champ => `
-        <div class="suggestion-item" data-champion-id="${champ.id}">
-            ${champ.name}
+        <div class="suggestion-item" data-champion-id="${champ.id}" style="display: flex; align-items: center; gap: 10px;">
+            <img src="https://ddragon.leagueoflegends.com/cdn/14.1.1/img/champion/${champ.id}.png" 
+                 style="width: 35px; height: 35px; border-radius: 4px;" 
+                 onerror="this.style.display='none'">
+            <span>${champ.name}</span>
         </div>
     `).join('');
     
@@ -269,9 +298,15 @@ function createGuessRow(guess) {
     row.className = 'guess-row';
     
     const comp = guess.comparison;
+    const championId = guess.champion?.id || comp.name.replace(/[^a-zA-Z]/g, '');
     
     row.innerHTML = `
-        <div class="guess-cell">${comp.name}</div>
+        <div class="guess-cell" style="display: flex; align-items: center; gap: 8px; justify-content: center;">
+            <img src="https://ddragon.leagueoflegends.com/cdn/14.1.1/img/champion/${championId}.png" 
+                 style="width: 30px; height: 30px; border-radius: 4px;" 
+                 onerror="this.style.display='none'">
+            <span>${comp.name}</span>
+        </div>
         <div class="guess-cell ${comp.genre.match}">${formatGenre(comp.genre.value)}</div>
         <div class="guess-cell ${comp.gender.match}">${translateGender(comp.gender.value)}</div>
         <div class="guess-cell ${comp.attackType.match}">${translateAttackType(comp.attackType.value)}</div>
@@ -404,6 +439,14 @@ async function startNewGame() {
         
         showModeSelector();
     }
+}
+
+function logout() {
+    localStorage.removeItem('auth_token');
+    localStorage.removeItem('user');
+    localStorage.removeItem('loldle_user');
+    localStorage.removeItem('loldle_guesses');
+    window.location.href = '/login.html';
 }
 
 init();

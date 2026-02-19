@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Profil - LOLDLAHESS</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="auth.css">
+</head>
+<body>
+    <nav class="nav-bar">
+        <div class="nav-links">
+            <a href="/">🎮 Jouer</a>
+            <a href="/leaderboard.html">🏆 Classement</a>
+            <a href="/profile.html">👤 Profil</a>
+        </div>
+        <div class="user-menu">
+            <span id="navUsername"></span>
+            <button class="logout-btn" onclick="logout()">Déconnexion</button>
+        </div>
+    </nav>
+
+    <div class="profile-container">
+        <div class="profile-header">
+            <div class="profile-picture" id="profilePicture">
+                👤
+            </div>
+            <div class="profile-info">
+                <h2 class="profile-username" id="profileUsername">...</h2>
+                <p class="profile-joined">Membre depuis <span id="joinedDate">...</span></p>
+            </div>
+        </div>
+
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-value" id="currentStreak">0</div>
+                <div class="stat-label">🔥 Série actuelle</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="longestStreak">0</div>
+                <div class="stat-label">🏅 Meilleure série</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="totalWins">0</div>
+                <div class="stat-label">✅ Victoires daily</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="monthlyRank">-</div>
+                <div class="stat-label">📊 Rang mensuel</div>
+            </div>
+        </div>
+
+        <div class="profile-pictures-selector">
+            <h3>Choisir une photo de profil</h3>
+            <div class="profile-pictures-grid" id="profilePicturesGrid"></div>
+        </div>
+    </div>
+
+    <script src="profile.js"></script>
+</body>
+</html>
