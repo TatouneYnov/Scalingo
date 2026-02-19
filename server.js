@@ -17,30 +17,32 @@ const app = express();
 app.use(express.json());
 app.use(express.static('public'));
 
-initDatabase();
+initDatabase().catch(error => {
+  console.error('Database init failed:', error);
+});
 
-app.get('/api/champions', (req, res) => {
+app.get('/api/champions', async (req, res) => {
   try {
-    const champions = getAllChampions();
+    const champions = await getAllChampions();
     res.json(champions);
   } catch (error) {
     res.status(500).json({ error: 'Internal server error' });
   }
 });
 
-app.get('/api/current', (req, res) => {
+app.get('/api/current', async (req, res) => {
   try {
-    const current = getCurrentChampion();
+    const current = await getCurrentChampion();
     res.json({ 
       exists: true,
-      gameId: getGameId()
+      gameId: await getGameId()
     });
   } catch (error) {
     res.status(500).json({ error: 'Internal server error' });
   }
 });
 
-app.post('/api/guess', (req, res) => {
+app.post('/api/guess', async (req, res) => {
   try {
     const { championId } = req.body;
     
@@ -48,12 +50,12 @@ app.post('/api/guess', (req, res) => {
       return res.status(400).json({ error: 'Champion ID is required' });
     }
 
-    const guessedChampion = getChampionById(championId);
+    const guessedChampion = await getChampionById(championId);
     if (!guessedChampion) {
       return res.status(404).json({ error: 'Champion not found' });
     }
 
-    const currentChampion = getCurrentChampion();
+    const currentChampion = await getCurrentChampion();
     const comparison = compareChampions(guessedChampion, currentChampion);
     
     const isCorrect = championId === currentChampion.id;
@@ -69,10 +71,10 @@ app.post('/api/guess', (req, res) => {
   }
 });
 
-app.post('/api/new-game', (req, res) => {
+app.post('/api/new-game', async (req, res) => {
   try {
-    generateNewGameChampion();
-    res.json({ success: true, message: 'New game started', gameId: getGameId() });
+    await generateNewGameChampion();
+    res.json({ success: true, message: 'New game started', gameId: await getGameId() });
   } catch (error) {
     res.status(500).json({ error: 'Internal server error' });
   }

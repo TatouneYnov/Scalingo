@@ -1,43 +1,83 @@
-const fs = require('fs');
-const path = require('path');
+const pool = require('./db');
 
-let champions = JSON.parse(
-  fs.readFileSync(path.join(__dirname, 'champions.json'), 'utf-8')
-);
-
-let currentChampion = null;
-let gameId = null;
-
-function initDatabase() {
-  console.log(`Loaded ${champions.length} champions`);
-  generateNewGameChampion();
+function mapChampionRow(row) {
+  if (!row) return null;
+  return {
+    id: row.id,
+    name: row.name,
+    title: row.title,
+    resource: row.resource,
+    genre: row.genre,
+    skinCount: row.skin_count,
+    gender: row.gender,
+    attackType: row.attack_type,
+    releaseDate: row.release_date,
+    region: row.region,
+    lane: row.lane
+  };
 }
 
-function getAllChampions() {
-  return champions;
+async function initDatabase() {
+  await ensureCurrentGame();
 }
 
-function getChampionById(id) {
-  return champions.find(c => c.id === id);
+async function getAllChampions() {
+  const result = await pool.query(
+    'SELECT id, name, title, resource, genre, skin_count, gender, attack_type, release_date, region, lane FROM champions'
+  );
+  return result.rows.map(mapChampionRow);
 }
 
-function generateNewGameChampion() {
-  const randomIndex = Math.floor(Math.random() * champions.length);
-  currentChampion = champions[randomIndex];
-  gameId = Math.random().toString(36).substr(2, 9);
-  console.log(`New game champion:`, currentChampion.name);
-  return currentChampion;
+async function getChampionById(id) {
+  const result = await pool.query(
+    'SELECT id, name, title, resource, genre, skin_count, gender, attack_type, release_date, region, lane FROM champions WHERE id = $1',
+    [id]
+  );
+  return mapChampionRow(result.rows[0]);
 }
 
-function getCurrentChampion() {
-  if (!currentChampion) {
-    generateNewGameChampion();
+async function createNewGame() {
+  const champResult = await pool.query('SELECT id FROM champions ORDER BY RANDOM() LIMIT 1');
+  const championId = champResult.rows[0]?.id;
+  if (!championId) {
+    throw new Error('No champions available');
   }
-  return currentChampion;
+
+  const newGameId = Math.random().toString(36).slice(2, 11);
+  await pool.query(
+    'INSERT INTO games (id, target_champion_id) VALUES ($1, $2)',
+    [newGameId, championId]
+  );
+
+  return { id: newGameId, targetChampionId: championId };
 }
 
-function getGameId() {
-  return gameId;
+async function ensureCurrentGame() {
+  const result = await pool.query(
+    'SELECT id, target_champion_id FROM games ORDER BY created_at DESC LIMIT 1'
+  );
+  if (result.rows.length === 0) {
+    return createNewGame();
+  }
+  return {
+    id: result.rows[0].id,
+    targetChampionId: result.rows[0].target_champion_id
+  };
+}
+
+async function getCurrentChampion() {
+  const game = await ensureCurrentGame();
+  return getChampionById(game.targetChampionId);
+}
+
+async function getGameId() {
+  const game = await ensureCurrentGame();
+  return game.id;
+}
+
+async function generateNewGameChampion() {
+  const game = await createNewGame();
+  return getChampionById(game.targetChampionId);
 }
 
 function compareChampions(guess, target) {
