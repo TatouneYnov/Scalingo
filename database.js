@@ -91,7 +91,8 @@ function mapChampionRow(row) {
     attackType: row.attack_type,
     releaseDate: row.release_date,
     region: row.region,
-    lane: row.lane
+    lane: row.lane,
+    imageUrl: row.image_url
   };
 }
 
@@ -101,14 +102,14 @@ async function initDatabase() {
 
 async function getAllChampions() {
   const result = await pool.query(
-    'SELECT id, name, title, resource, genre, skin_count, gender, attack_type, release_date, region, lane FROM champions'
+    'SELECT id, name, title, resource, genre, skin_count, gender, attack_type, release_date, region, lane, image_url FROM champions'
   );
   return result.rows.map(mapChampionRow);
 }
 
 async function getChampionById(id) {
   const result = await pool.query(
-    'SELECT id, name, title, resource, genre, skin_count, gender, attack_type, release_date, region, lane FROM champions WHERE id = $1',
+    'SELECT id, name, title, resource, genre, skin_count, gender, attack_type, release_date, region, lane, image_url FROM champions WHERE id = $1',
     [id]
   );
   return mapChampionRow(result.rows[0]);

@@ -186,7 +186,7 @@ function handleKeyDown(e) {
 function displaySuggestions(filtered) {
     suggestionsDiv.innerHTML = filtered.map(champ => `
         <div class="suggestion-item" data-champion-id="${champ.id}" style="display: flex; align-items: center; gap: 10px;">
-            <img src="https://ddragon.leagueoflegends.com/cdn/14.1.1/img/champion/${champ.id}.png" 
+            <img src="${champ.imageUrl || `https://ddragon.leagueoflegends.com/cdn/14.1.1/img/champion/${champ.id}.png`}" 
                  style="width: 35px; height: 35px; border-radius: 4px;" 
                  onerror="this.style.display='none'">
             <span>${champ.name}</span>
@@ -299,10 +299,11 @@ function createGuessRow(guess) {
     
     const comp = guess.comparison;
     const championId = guess.champion?.id || comp.name.replace(/[^a-zA-Z]/g, '');
+    const imageUrl = guess.champion?.imageUrl || `https://ddragon.leagueoflegends.com/cdn/14.1.1/img/champion/${championId}.png`;
     
     row.innerHTML = `
         <div class="guess-cell" style="display: flex; align-items: center; gap: 8px; justify-content: center;">
-            <img src="https://ddragon.leagueoflegends.com/cdn/14.1.1/img/champion/${championId}.png" 
+            <img src="${imageUrl}" 
                  style="width: 30px; height: 30px; border-radius: 4px;" 
                  onerror="this.style.display='none'">
             <span>${comp.name}</span>
