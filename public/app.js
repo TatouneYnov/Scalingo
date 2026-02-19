@@ -3,6 +3,8 @@ let guesses = [];
 let gameWon = false;
 let headerAdded = false;
 let currentGameId = null;
+let currentMode = 'unlimited';
+let currentUserId = null;
 
 const searchInput = document.getElementById('championSearch');
 const suggestionsDiv = document.getElementById('suggestions');
@@ -10,27 +12,105 @@ const guessesDiv = document.getElementById('guesses');
 const winMessage = document.getElementById('winMessage');
 const winText = document.getElementById('winText');
 const newGameBtn = document.getElementById('newGameBtn');
+const modeSelector = document.getElementById('modeSelector');
+const leaderboard = document.getElementById('leaderboard');
 
 async function init() {
     try {
-        const [championsResponse, currentResponse] = await Promise.all([
-            fetch('/api/champions'),
-            fetch('/api/current')
-        ]);
-        champions = await championsResponse.json();
-        const currentData = await currentResponse.json();
-        currentGameId = currentData.gameId || null;
+        const response = await fetch('/api/champions');
+        champions = await response.json();
+        
+        const stored = JSON.parse(localStorage.getItem('loldle_user') || '{}');
+        currentMode = stored.mode;
+        currentUserId = stored.userId || generateUserId();
+        
+        setupEventListeners();
+        
+        if (!currentMode) {
+            showModeSelector();
+        } else if (currentMode === 'unlimited') {
+            startGame();
+            loadSavedGuesses();
+        } else if (currentMode === 'daily') {
+            startGame();
+            loadLeaderboard();
+            loadSavedGuesses();
+        }
+        
+    } catch (error) {
+        console.error('Failed to initialize game:', error);
+        alert('Erreur lors du chargement du jeu.');
+    }
+}
+
+function generateUserId() {
+    return 'user_' + Math.random().toString(36).substr(2, 9);
+}
+
+function showModeSelector() {
+    modeSelector.classList.remove('hidden');
+}
+
+async function selectMode(mode) {
+    currentMode = mode;
+    localStorage.setItem('loldle_user', JSON.stringify({ mode: currentMode, userId: currentUserId }));
+    
+    await fetch('/api/set-mode', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ mode, userId: currentUserId })
+    });
+    
+    modeSelector.classList.add('hidden');
+    guessesDiv.innerHTML = '';
+    headerAdded = false;
+    guesses = [];
+    gameWon = false;
+    searchInput.value = '';
+    searchInput.disabled = false;
+    
+    await startGame();
+    
+    if (mode === 'daily') {
+        loadLeaderboard();
+    }
+}
+
+async function loadLeaderboard() {
+    try {
+        const response = await fetch('/api/daily-leaderboard');
+        const data = await response.json();
+        
+        const leaderboardList = document.getElementById('leaderboardList');
+        if (data.scores.length === 0) {
+            leaderboardList.innerHTML = '<p>Aucun score pour aujourd\'hui</p>';
+        } else {
+            leaderboardList.innerHTML = data.scores.map((score, i) => `
+                <div class="leaderboard-entry">
+                    <span class="rank">#${i + 1}</span>
+                    <span class="user">${score.user_id}</span>
+                    <span class="attempts">${score.attempts} essai${score.attempts > 1 ? 's' : ''}</span>
+                </div>
+            `).join('');
+        }
+        leaderboard.classList.remove('hidden');
+    } catch (error) {
+        console.error('Failed to load leaderboard:', error);
+    }
+}
+
+async function startGame() {
+    try {
+        await fetch('/api/new-game', { method: 'POST' });
+        const response = await fetch('/api/current');
+        const current = await response.json();
+        currentGameId = current.gameId;
         
         searchInput.disabled = false;
         searchInput.focus();
         
-        setupEventListeners();
-        
-        loadSavedGuesses();
-        
     } catch (error) {
-        console.error('Failed to initialize game:', error);
-        alert('Erreur lors du chargement du jeu. Veuillez rafraîchir la page.');
+        console.error('Error starting game:', error);
     }
 }
 
@@ -39,6 +119,12 @@ function setupEventListeners() {
     searchInput.addEventListener('keydown', handleKeyDown);
     document.addEventListener('click', closeSuggestions);
     newGameBtn.addEventListener('click', startNewGame);
+    
+    document.querySelectorAll('.mode-btn').forEach(btn => {
+        if (btn.dataset.mode !== 'hardcore') {
+            btn.addEventListener('click', () => selectMode(btn.dataset.mode));
+        }
+    });
 }
 
 function handleSearchInput(e) {
@@ -200,7 +286,7 @@ function createGuessRow(guess) {
     return row;
 }
 
-function handleWin(champion) {
+async function handleWin(champion) {
     gameWon = true;
     searchInput.disabled = true;
     
@@ -209,6 +295,15 @@ function handleWin(champion) {
     winMessage.classList.remove('hidden');
     
     saveGameState();
+    
+    if (currentMode === 'daily') {
+        await fetch('/api/daily-score', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ userId: currentUserId, attempts })
+        });
+        loadLeaderboard();
+    }
 }
 
 function formatGenre(genre) {
@@ -276,19 +371,6 @@ function saveGuesses() {
 }
 
 function loadSavedGuesses() {
-    const savedGameId = localStorage.getItem('loldle_game_id');
-    if (currentGameId) {
-        if (savedGameId && savedGameId !== currentGameId) {
-            localStorage.removeItem('loldle_guesses');
-            localStorage.removeItem('loldle_won');
-            localStorage.setItem('loldle_game_id', currentGameId);
-            return;
-        }
-        if (!savedGameId) {
-            localStorage.setItem('loldle_game_id', currentGameId);
-        }
-    }
-
     const saved = localStorage.getItem('loldle_guesses');
     
     if (saved) {
@@ -305,35 +387,22 @@ function saveGameState() {
     localStorage.setItem('loldle_won', 'true');
 }
 
-function startNewGame() {
-    if (confirm('Voulez-vous vraiment recommencer une nouvelle partie ? Votre progression sera perdue.')) {
-        fetch('/api/new-game', { method: 'POST' })
-            .then(response => {
-                if (!response.ok) throw new Error('Erreur serveur');
-                return response.json();
-            })
-            .then(data => {
-                currentGameId = data.gameId || null;
-                if (currentGameId) {
-                    localStorage.setItem('loldle_game_id', currentGameId);
-                }
-                localStorage.removeItem('loldle_guesses');
-                localStorage.removeItem('loldle_won');
-                
-                guesses = [];
-                gameWon = false;
-                headerAdded = false;
-                
-                guessesDiv.innerHTML = '';
-                winMessage.classList.add('hidden');
-                searchInput.disabled = false;
-                searchInput.value = '';
-                searchInput.focus();
-            })
-            .catch(error => {
-                console.error('Erreur lors de la nouvelle partie:', error);
-                alert('Erreur lors du démarrage d\'une nouvelle partie');
-            });
+async function startNewGame() {
+    if (confirm('Voulez-vous vraiment recommencer une nouvelle partie ?')) {
+        localStorage.removeItem('loldle_guesses');
+        localStorage.removeItem('loldle_won');
+        
+        guesses = [];
+        gameWon = false;
+        headerAdded = false;
+        
+        guessesDiv.innerHTML = '';
+        winMessage.classList.add('hidden');
+        searchInput.disabled = true;
+        searchInput.value = '';
+        leaderboard.classList.add('hidden');
+        
+        showModeSelector();
     }
 }
 

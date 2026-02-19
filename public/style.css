@@ -315,6 +315,125 @@ h1 {
     border: 1px solid #b87618;
 }
 
+.hidden {
+    display: none !important;
+}
+
+#modeSelector {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.95);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 2100;
+}
+
+.mode-selector-content {
+    background: #2a2a2a;
+    padding: 40px;
+    border-radius: 8px;
+    border: 1px solid #444;
+    text-align: center;
+    max-width: 500px;
+}
+
+.mode-selector-content h2 {
+    font-size: 2rem;
+    margin-bottom: 30px;
+    color: #fff;
+}
+
+.mode-buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.mode-btn {
+    padding: 15px 30px;
+    font-size: 1.1rem;
+    background: #3a3a3a;
+    color: #e0e0e0;
+    border: 1px solid #555;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.mode-btn:hover {
+    background: #444;
+    border-color: #777;
+    transform: translateY(-2px);
+}
+
+.mode-btn[data-mode="unlimited"] {
+    border-left: 3px solid #2d9f2d;
+}
+
+.mode-btn[data-mode="daily"] {
+    border-left: 3px solid #8b6914;
+}
+
+.mode-btn[data-mode="hardcore"] {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+#leaderboard {
+    background: #2a2a2a;
+    padding: 20px;
+    border-radius: 8px;
+    border: 1px solid #333;
+    margin-top: 20px;
+}
+
+#leaderboard h3 {
+    color: #fff;
+    margin-bottom: 15px;
+    font-size: 1.2rem;
+}
+
+#leaderboardList {
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+.leaderboard-entry {
+    display: grid;
+    grid-template-columns: 50px 1fr 150px;
+    gap: 15px;
+    padding: 10px;
+    border-bottom: 1px solid #333;
+    align-items: center;
+}
+
+.leaderboard-entry:last-child {
+    border-bottom: none;
+}
+
+.leaderboard-entry .rank {
+    color: #8b6914;
+    font-weight: bold;
+    text-align: center;
+}
+
+.leaderboard-entry .user {
+    color: #e0e0e0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.leaderboard-entry .attempts {
+    color: #2d9f2d;
+    text-align: right;
+    font-weight: bold;
+}
+
 @media (max-width: 768px) {
     .guess-row,
     .guess-header {

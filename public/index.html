@@ -14,8 +14,19 @@
             <button id="newGameBtn" class="new-game-btn">Nouvelle partie</button>
         </header>
 
+        <div id="modeSelector" class="hidden">
+            <div class="mode-selector-content">
+                <h2>Choisi un mode</h2>
+                <div class="mode-buttons">
+                    <button class="mode-btn" data-mode="unlimited">Illimité</button>
+                    <button class="mode-btn" data-mode="daily">Daily</button>
+                    <button class="mode-btn" data-mode="hardcore">Hardcore (bientôt)</button>
+                </div>
+            </div>
+        </div>
+
         <div class="game-info">
-            <p>Trouve le champion du jour en utilisant les indices !</p>
+            <p>Trouve le champion en utilisant les indices !</p>
         </div>
 
         <div class="search-container">
@@ -27,6 +38,11 @@
                 disabled
             >
             <div id="suggestions" class="suggestions"></div>
+        </div>
+
+        <div id="leaderboard" class="leaderboard hidden">
+            <h3>Classement du jour</h3>
+            <div id="leaderboardList"></div>
         </div>
 
         <div id="guesses" class="guesses-container"></div>

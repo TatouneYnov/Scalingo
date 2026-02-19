@@ -1,5 +1,49 @@
 const pool = require('./db');
 
+let currentUserId = null;
+let currentMode = 'unlimited';
+
+async function initializeDatabase() {
+  try {
+    const migrations = `
+      ALTER TABLE games ADD COLUMN IF NOT EXISTS mode TEXT DEFAULT 'unlimited' NOT NULL;
+      ALTER TABLE games ADD COLUMN IF NOT EXISTS date_key TEXT;
+      
+      CREATE TABLE IF NOT EXISTS daily_challenge (
+        date TEXT PRIMARY KEY,
+        champion_id TEXT NOT NULL REFERENCES champions(id),
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      );
+      
+      CREATE TABLE IF NOT EXISTS daily_scores (
+        id BIGSERIAL PRIMARY KEY,
+        date TEXT NOT NULL,
+        user_id TEXT NOT NULL,
+        attempts INTEGER NOT NULL,
+        completed_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        UNIQUE(date, user_id)
+      );
+      
+      CREATE INDEX IF NOT EXISTS idx_games_mode ON games(mode);
+      CREATE INDEX IF NOT EXISTS idx_games_date_key ON games(date_key);
+      CREATE INDEX IF NOT EXISTS idx_daily_scores_date ON daily_scores(date);
+    `;
+    
+    await pool.query(migrations);
+    console.log('✅ Database schema initialized successfully');
+  } catch (error) {
+    console.error('❌ Failed to initialize database:', error.message);
+  }
+}
+
+function setCurrentUser(userId) {
+  currentUserId = userId;
+}
+
+function setCurrentMode(mode) {
+  currentMode = mode;
+}
+
 function mapChampionRow(row) {
   if (!row) return null;
   return {
@@ -37,16 +81,41 @@ async function getChampionById(id) {
 }
 
 async function createNewGame() {
-  const champResult = await pool.query('SELECT id FROM champions ORDER BY RANDOM() LIMIT 1');
-  const championId = champResult.rows[0]?.id;
+  let championId;
+  
+  if (currentMode === 'daily') {
+    const today = new Date().toISOString().split('T')[0];
+    const dailyResult = await pool.query(
+      'SELECT champion_id FROM daily_challenge WHERE date = $1',
+      [today]
+    );
+    
+    if (dailyResult.rows.length === 0) {
+      const randResult = await pool.query('SELECT id FROM champions ORDER BY RANDOM() LIMIT 1');
+      championId = randResult.rows[0]?.id;
+      await pool.query(
+        'INSERT INTO daily_challenge (date, champion_id) VALUES ($1, $2)',
+        [today, championId]
+      );
+    } else {
+      championId = dailyResult.rows[0].champion_id;
+    }
+  } else {
+    const champResult = await pool.query('SELECT id FROM champions ORDER BY RANDOM() LIMIT 1');
+    championId = champResult.rows[0]?.id;
+  }
+  
   if (!championId) {
     throw new Error('No champions available');
   }
 
   const newGameId = Math.random().toString(36).slice(2, 11);
+  const dateKey = currentMode === 'daily' ? new Date().toISOString().split('T')[0] : null;
+  const userId = currentUserId || 'anonymous';
+  
   await pool.query(
-    'INSERT INTO games (id, target_champion_id) VALUES ($1, $2)',
-    [newGameId, championId]
+    'INSERT INTO games (id, target_champion_id, mode, date_key) VALUES ($1, $2, $3, $4)',
+    [newGameId, championId, currentMode, dateKey]
   );
 
   return { id: newGameId, targetChampionId: championId };
@@ -146,12 +215,45 @@ function compareGenre(guessGenre, targetGenre) {
   };
 }
 
+async function getDailyChampion() {
+  const today = new Date().toISOString().split('T')[0];
+  const result = await pool.query(
+    'SELECT champion_id FROM daily_challenge WHERE date = $1',
+    [today]
+  );
+  
+  if (result.rows.length === 0) return null;
+  return getChampionById(result.rows[0].champion_id);
+}
+
+async function getLeaderboard(date = null) {
+  const targetDate = date || new Date().toISOString().split('T')[0];
+  const result = await pool.query(
+    'SELECT user_id, attempts, completed_at FROM daily_scores WHERE date = $1 ORDER BY attempts ASC, completed_at ASC',
+    [targetDate]
+  );
+  return result.rows;
+}
+
+async function saveDailyScore(userId, attempts) {
+  const today = new Date().toISOString().split('T')[0];
+  await pool.query(
+    'INSERT INTO daily_scores (date, user_id, attempts) VALUES ($1, $2, $3) ON CONFLICT (date, user_id) DO UPDATE SET attempts = $3',
+    [today, userId, attempts]
+  );
+}
+
 module.exports = {
-  initDatabase,
+  initializeDatabase,
   getAllChampions,
   getChampionById,
   getCurrentChampion,
   generateNewGameChampion,
   getGameId,
-  compareChampions
+  compareChampions,
+  setCurrentUser,
+  setCurrentMode,
+  getDailyChampion,
+  getLeaderboard,
+  saveDailyScore
 };
