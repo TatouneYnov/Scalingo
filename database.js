@@ -96,10 +96,6 @@ function mapChampionRow(row) {
   };
 }
 
-async function initDatabase() {
-  await ensureCurrentGame();
-}
-
 async function getAllChampions() {
   const result = await pool.query(
     'SELECT id, name, title, resource, genre, skin_count, gender, attack_type, release_date, region, lane, image_url FROM champions'
@@ -250,17 +246,6 @@ function compareGenre(guessGenre, targetGenre) {
   };
 }
 
-async function getDailyChampion() {
-  const today = new Date().toISOString().split('T')[0];
-  const result = await pool.query(
-    'SELECT champion_id FROM daily_challenge WHERE date = $1',
-    [today]
-  );
-  
-  if (result.rows.length === 0) return null;
-  return getChampionById(result.rows[0].champion_id);
-}
-
 async function getLeaderboard(date = null) {
   const targetDate = date || new Date().toISOString().split('T')[0];
   const result = await pool.query(
@@ -297,7 +282,6 @@ module.exports = {
   compareChampions,
   setCurrentUser,
   setCurrentMode,
-  getDailyChampion,
   getLeaderboard,
   saveDailyScore,
   hasPlayedToday

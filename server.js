@@ -14,7 +14,6 @@ const {
   compareChampions,
   setCurrentUser,
   setCurrentMode,
-  getDailyChampion,
   getLeaderboard,
   saveDailyScore,
   hasPlayedToday
