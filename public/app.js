@@ -43,9 +43,8 @@ async function init() {
             startGame();
             loadSavedGuesses();
         } else if (currentMode === 'daily') {
-            startGame();
+            await checkDailyStatus();
             loadLeaderboard();
-            loadSavedGuesses();
         }
         
     } catch (error) {
@@ -95,10 +94,12 @@ async function selectMode(mode) {
     searchInput.value = '';
     searchInput.disabled = false;
     
-    await startGame();
-    
     if (mode === 'daily') {
+        // Vérifier si l'utilisateur a déjà joué aujourd'hui avant de lancer
+        await checkDailyStatus();
         loadLeaderboard();
+    } else {
+        await startGame();
     }
 }
 
@@ -122,6 +123,33 @@ async function loadLeaderboard() {
         leaderboard.classList.remove('hidden');
     } catch (error) {
         console.error('Failed to load leaderboard:', error);
+    }
+}
+
+async function checkDailyStatus() {
+    try {
+        const response = await fetch(`/api/daily-status?userId=${currentUserId}`);
+        const data = await response.json();
+        
+        if (data.hasPlayed) {
+            // L'utilisateur a déjà joué aujourd'hui
+            gameWon = true;
+            searchInput.disabled = true;
+            winText.innerHTML = `Tu as déjà joué aujourd'hui ! Tu as trouvé le champion en ${data.attempts} essai${data.attempts > 1 ? 's' : ''}.<br><br>Clique sur "Nouvelle partie" pour jouer en mode illimité ! 🎮`;
+            winMessage.classList.remove('hidden');
+            
+            // Charger les tentatives sauvegardées pour afficher le résultat
+            loadSavedGuesses();
+        } else {
+            // L'utilisateur peut jouer
+            startGame();
+            loadSavedGuesses();
+        }
+    } catch (error) {
+        console.error('Failed to check daily status:', error);
+        // En cas d'erreur, on laisse jouer
+        startGame();
+        loadSavedGuesses();
     }
 }
 
@@ -223,10 +251,22 @@ async function selectChampion(championId) {
             headers: {
                 'Content-Type': 'application/json'
             },
-            body: JSON.stringify({ championId })
+            body: JSON.stringify({ 
+                championId,
+                userId: currentUserId,
+                mode: currentMode
+            })
         });
         
         const result = await response.json();
+        
+        // Vérifier si l'utilisateur a déjà joué aujourd'hui
+        if (result.alreadyPlayed) {
+            alert(result.error || 'Tu as déjà joué le daily aujourd\'hui !');
+            // Recharger la page pour afficher le statut correct
+            window.location.reload();
+            return;
+        }
         
         guesses.unshift(result);
         saveGuesses();
@@ -424,6 +464,26 @@ function saveGameState() {
 }
 
 async function startNewGame() {
+    // En mode daily, on a déjà joué aujourd'hui, on permet de changer de mode
+    if (currentMode === 'daily' && gameWon) {
+        // Réinitialiser pour choisir un autre mode
+        localStorage.removeItem('loldle_guesses');
+        localStorage.removeItem('loldle_won');
+        
+        guesses = [];
+        gameWon = false;
+        headerAdded = false;
+        
+        guessesDiv.innerHTML = '';
+        winMessage.classList.add('hidden');
+        searchInput.disabled = true;
+        searchInput.value = '';
+        leaderboard.classList.add('hidden');
+        
+        showModeSelector();
+        return;
+    }
+    
     if (confirm('Voulez-vous vraiment recommencer une nouvelle partie ?')) {
         localStorage.removeItem('loldle_guesses');
         localStorage.removeItem('loldle_won');

@@ -1,9 +1,3 @@
-const profilePictures = [
-    'default.png',
-    '🎮', '🏆', '⭐', '🔥', '💎', '👑', '🎯', '🚀',
-    '🦁', '🐉', '🦅', '🐺', '🐅', '🦈', '🦎', '🐢'
-];
-
 let currentUser = null;
 
 async function init() {
@@ -18,7 +12,6 @@ async function init() {
     document.getElementById('navUsername').textContent = user.username;
     
     await loadProfile();
-    renderProfilePictures();
     
     // Setup file input listener
     const fileInput = document.getElementById('customPictureInput');
@@ -48,52 +41,20 @@ async function loadProfile() {
         
         const pictureEl = document.getElementById('profilePicture');
         if (profile.profile_picture && profile.profile_picture !== 'default.png') {
-            // Check if it's a custom uploaded image (starts with /uploads/)
-            if (profile.profile_picture.startsWith('/uploads/')) {
+            // Afficher uniquement les images uploadées
+            if (profile.profile_picture.startsWith('/uploads/') || profile.profile_picture.startsWith('http')) {
                 pictureEl.innerHTML = `<img src="${profile.profile_picture}" style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover;">`;
             } else {
-                // It's an emoji
-                pictureEl.textContent = profile.profile_picture;
+                // Icône par défaut pour tout le reste
+                pictureEl.innerHTML = '<span style="font-size: 48px; color: #666;">👤</span>';
             }
+        } else {
+            // Icône par défaut
+            pictureEl.innerHTML = '<span style="font-size: 48px; color: #666;">👤</span>';
         }
         
     } catch (error) {
         console.error('Failed to load profile:', error);
-    }
-}
-
-function renderProfilePictures() {
-    const grid = document.getElementById('profilePicturesGrid');
-    
-    grid.innerHTML = profilePictures.map(pic => `
-        <div class="profile-pic-option" data-pic="${pic}" onclick="selectProfilePicture('${pic}')">
-            ${pic}
-        </div>
-    `).join('');
-}
-
-async function selectProfilePicture(picture) {
-    try {
-        const response = await fetch('/api/profile/picture', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ userId: currentUser.id, pictureUrl: picture })
-        });
-        
-        if (response.ok) {
-            document.getElementById('profilePicture').textContent = picture;
-            
-            currentUser.profilePicture = picture;
-            localStorage.setItem('user', JSON.stringify(currentUser));
-            
-            document.querySelectorAll('.profile-pic-option').forEach(el => {
-                el.classList.remove('selected');
-            });
-            document.querySelector(`[data-pic="${picture}"]`).classList.add('selected');
-        }
-        
-    } catch (error) {
-        console.error('Failed to update profile picture:', error);
     }
 }
 

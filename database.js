@@ -278,6 +278,15 @@ async function saveDailyScore(userId, attempts) {
   );
 }
 
+async function hasPlayedToday(userId) {
+  const today = new Date().toISOString().split('T')[0];
+  const result = await pool.query(
+    'SELECT attempts FROM daily_scores WHERE date = $1 AND user_id = $2',
+    [today, userId]
+  );
+  return result.rows.length > 0 ? result.rows[0] : null;
+}
+
 module.exports = {
   initializeDatabase,
   getAllChampions,
@@ -290,5 +299,6 @@ module.exports = {
   setCurrentMode,
   getDailyChampion,
   getLeaderboard,
-  saveDailyScore
+  saveDailyScore,
+  hasPlayedToday
 };

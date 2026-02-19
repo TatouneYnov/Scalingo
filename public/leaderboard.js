@@ -47,13 +47,22 @@ async function loadLeaderboard() {
             else if (index === 1) rankDisplay = '🥈';
             else if (index === 2) rankDisplay = '🥉';
             
+            // Afficher l'image de profil si disponible, sinon un avatar par défaut
+            const isImageUrl = player.profile_picture && (
+                player.profile_picture.startsWith('http') || 
+                player.profile_picture.startsWith('/uploads/')
+            );
+            const profilePictureContent = isImageUrl
+                ? `<img src="${player.profile_picture}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;" onerror="this.style.display='none'">` 
+                : '<span style="font-size: 18px; color: #666;">👤</span>';
+            
             return `
                 <tr style="${rowStyle} border-bottom: 1px solid #333;">
                     <td style="padding: 15px; font-weight: bold; font-size: 1.2rem;">${rankDisplay}</td>
                     <td style="padding: 15px;">
                         <div style="display: flex; align-items: center; gap: 10px;">
-                            <div style="width: 35px; height: 35px; border-radius: 50%; background: #1a1a1a; border: 2px solid #2d9f2d; display: flex; align-items: center; justify-content: center;">
-                                ${player.profile_picture || '👤'}
+                            <div style="width: 35px; height: 35px; border-radius: 50%; background: #1a1a1a; border: 2px solid #2d9f2d; display: flex; align-items: center; justify-content: center; overflow: hidden;">
+                                ${profilePictureContent}
                             </div>
                             <span style="font-weight: ${isCurrentUser ? 'bold' : 'normal'}; color: ${isCurrentUser ? '#2d9f2d' : '#e0e0e0'};">
                                 ${player.username} ${isCurrentUser ? '(Vous)' : ''}

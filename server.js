@@ -16,7 +16,8 @@ const {
   setCurrentMode,
   getDailyChampion,
   getLeaderboard,
-  saveDailyScore
+  saveDailyScore,
+  hasPlayedToday
 } = require('./database');
 
 const {
@@ -115,6 +116,23 @@ app.get('/api/daily-leaderboard', async (req, res) => {
   }
 });
 
+app.get('/api/daily-status', async (req, res) => {
+  try {
+    const userId = req.query.userId;
+    if (!userId) {
+      return res.status(400).json({ error: 'Missing userId' });
+    }
+    
+    const playedData = await hasPlayedToday(userId);
+    res.json({ 
+      hasPlayed: !!playedData,
+      attempts: playedData ? playedData.attempts : null
+    });
+  } catch (error) {
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 app.post('/api/daily-score', async (req, res) => {
   try {
     const { userId, attempts } = req.body;
@@ -149,10 +167,22 @@ app.get('/api/current', async (req, res) => {
 
 app.post('/api/guess', async (req, res) => {
   try {
-    const { championId } = req.body;
+    const { championId, userId, mode } = req.body;
     
     if (!championId) {
       return res.status(400).json({ error: 'Champion ID is required' });
+    }
+
+    // Vérifier si l'utilisateur essaie de tricher en mode daily
+    if (mode === 'daily' && userId) {
+      const playedData = await hasPlayedToday(userId);
+      if (playedData) {
+        return res.status(403).json({ 
+          error: 'Tu as déjà joué le daily aujourd\'hui !',
+          alreadyPlayed: true,
+          attempts: playedData.attempts
+        });
+      }
     }
 
     const guessedChampion = await getChampionById(championId);
@@ -168,7 +198,8 @@ app.post('/api/guess', async (req, res) => {
     res.json({
       correct: isCorrect,
       comparison,
-      ...(isCorrect && { champion: currentChampion })
+      champion: guessedChampion,
+      ...(isCorrect && { answer: currentChampion })
     });
   } catch (error) {
     console.error('Error processing guess:', error);
