@@ -36,6 +36,10 @@ function getCurrentChampion() {
   return currentChampion;
 }
 
+function getGameId() {
+  return gameId;
+}
+
 function compareChampions(guess, target) {
   const result = {
     name: guess.name,
@@ -108,5 +112,6 @@ module.exports = {
   getChampionById,
   getCurrentChampion,
   generateNewGameChampion,
+  getGameId,
   compareChampions
 };

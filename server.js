@@ -7,6 +7,7 @@ const {
   getAllChampions,
   getChampionById,
   getCurrentChampion,
+  getGameId,
   generateNewGameChampion,
   compareChampions
 } = require('./database');
@@ -31,7 +32,8 @@ app.get('/api/current', (req, res) => {
   try {
     const current = getCurrentChampion();
     res.json({ 
-      exists: true
+      exists: true,
+      gameId: getGameId()
     });
   } catch (error) {
     res.status(500).json({ error: 'Internal server error' });
@@ -70,7 +72,7 @@ app.post('/api/guess', (req, res) => {
 app.post('/api/new-game', (req, res) => {
   try {
     generateNewGameChampion();
-    res.json({ success: true, message: 'New game started' });
+    res.json({ success: true, message: 'New game started', gameId: getGameId() });
   } catch (error) {
     res.status(500).json({ error: 'Internal server error' });
   }

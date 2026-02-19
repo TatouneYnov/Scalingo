@@ -2,6 +2,7 @@ let champions = [];
 let guesses = [];
 let gameWon = false;
 let headerAdded = false;
+let currentGameId = null;
 
 const searchInput = document.getElementById('championSearch');
 const suggestionsDiv = document.getElementById('suggestions');
@@ -12,8 +13,13 @@ const newGameBtn = document.getElementById('newGameBtn');
 
 async function init() {
     try {
-        const response = await fetch('/api/champions');
-        champions = await response.json();
+        const [championsResponse, currentResponse] = await Promise.all([
+            fetch('/api/champions'),
+            fetch('/api/current')
+        ]);
+        champions = await championsResponse.json();
+        const currentData = await currentResponse.json();
+        currentGameId = currentData.gameId || null;
         
         searchInput.disabled = false;
         searchInput.focus();
@@ -270,6 +276,19 @@ function saveGuesses() {
 }
 
 function loadSavedGuesses() {
+    const savedGameId = localStorage.getItem('loldle_game_id');
+    if (currentGameId) {
+        if (savedGameId && savedGameId !== currentGameId) {
+            localStorage.removeItem('loldle_guesses');
+            localStorage.removeItem('loldle_won');
+            localStorage.setItem('loldle_game_id', currentGameId);
+            return;
+        }
+        if (!savedGameId) {
+            localStorage.setItem('loldle_game_id', currentGameId);
+        }
+    }
+
     const saved = localStorage.getItem('loldle_guesses');
     
     if (saved) {
@@ -294,6 +313,10 @@ function startNewGame() {
                 return response.json();
             })
             .then(data => {
+                currentGameId = data.gameId || null;
+                if (currentGameId) {
+                    localStorage.setItem('loldle_game_id', currentGameId);
+                }
                 localStorage.removeItem('loldle_guesses');
                 localStorage.removeItem('loldle_won');
                 
