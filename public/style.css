@@ -320,42 +320,40 @@ h1 {
 }
 
 #modeSelector {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: rgba(0, 0, 0, 0.95);
+    position: static;
+    background: transparent;
     display: flex;
     align-items: center;
     justify-content: center;
-    z-index: 2100;
+    margin-bottom: 20px;
 }
 
 .mode-selector-content {
-    background: #2a2a2a;
-    padding: 40px;
+    background: #222;
+    padding: 16px 20px;
     border-radius: 8px;
     border: 1px solid #444;
     text-align: center;
-    max-width: 500px;
+    width: 100%;
+    max-width: 900px;
 }
 
 .mode-selector-content h2 {
-    font-size: 2rem;
-    margin-bottom: 30px;
+    font-size: 1.2rem;
+    margin-bottom: 12px;
     color: #fff;
 }
 
 .mode-buttons {
     display: flex;
-    flex-direction: column;
-    gap: 15px;
+    flex-wrap: wrap;
+    gap: 10px;
+    justify-content: center;
 }
 
 .mode-btn {
-    padding: 15px 30px;
-    font-size: 1.1rem;
+    padding: 10px 16px;
+    font-size: 0.95rem;
     background: #3a3a3a;
     color: #e0e0e0;
     border: 1px solid #555;

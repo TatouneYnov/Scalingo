@@ -22,13 +22,17 @@
 
     <div class="container">
         <header style="text-align: center; margin-bottom: 30px;">
-            <h1>🏆 Classement Mensuel</h1>
+            <h1>🏆 Classement Hebdomadaire</h1>
             <p class="subtitle">Moins d'essais = Meilleur rang</p>
         </header>
 
         <div class="leaderboard-header" style="background: #2a2a2a; padding: 20px; border-radius: 8px; margin-bottom: 20px; text-align: center;">
-            <h3 id="currentMonth">Février 2026</h3>
-            <p style="color: #999;">Chaque victoire daily ajoute le nombre d'essais à votre score total</p>
+            <div style="display: flex; align-items: center; justify-content: center; gap: 16px; flex-wrap: wrap;">
+                <button id="prevWeekBtn" class="upload-btn" style="padding: 8px 12px;">⬅ Semaine précédente</button>
+                <h3 id="currentWeek" style="margin: 0;">Semaine en cours</h3>
+                <button id="nextWeekBtn" class="upload-btn" style="padding: 8px 12px;">Semaine suivante ➡</button>
+            </div>
+            <p style="color: #999; margin-top: 10px;">Chaque victoire daily ajoute le nombre d'essais à votre score total</p>
         </div>
 
         <div class="leaderboard-table" style="background: #2a2a2a; border: 1px solid #444; border-radius: 8px; padding: 20px;">

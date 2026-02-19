@@ -109,11 +109,6 @@ async function uploadCustomPicture(file) {
             currentUser.profilePicture = data.pictureUrl;
             localStorage.setItem('user', JSON.stringify(currentUser));
             
-            // Clear selected emoji if any
-            document.querySelectorAll('.profile-pic-option').forEach(el => {
-                el.classList.remove('selected');
-            });
-            
             // Clear input
             document.getElementById('customPictureInput').value = '';
             

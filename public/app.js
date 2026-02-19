@@ -86,7 +86,6 @@ async function selectMode(mode) {
         body: JSON.stringify({ mode, userId: currentUserId })
     });
     
-    modeSelector.classList.add('hidden');
     guessesDiv.innerHTML = '';
     headerAdded = false;
     guesses = [];

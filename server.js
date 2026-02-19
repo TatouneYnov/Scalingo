@@ -27,7 +27,8 @@ const {
   updateProfilePicture,
   updateUserStats,
   updateMonthlyScore,
-  getMonthlyLeaderboard,
+  updateWeeklyScore,
+  getWeeklyLeaderboard,
   getUserMonthlyRank
 } = require('./auth');
 
@@ -144,6 +145,7 @@ app.post('/api/daily-score', async (req, res) => {
     if (!isNaN(userId)) {
       await updateUserStats(parseInt(userId), true);
       await updateMonthlyScore(parseInt(userId), attempts);
+      await updateWeeklyScore(parseInt(userId), attempts);
     }
     
     res.json({ success: true });
@@ -307,11 +309,11 @@ app.post('/api/profile/upload', upload.single('profilePicture'), async (req, res
   }
 });
 
-app.get('/api/leaderboard/monthly', async (req, res) => {
+app.get('/api/leaderboard/weekly', async (req, res) => {
   try {
-    const yearMonth = req.query.month;
-    const leaderboard = await getMonthlyLeaderboard(yearMonth);
-    res.json({ leaderboard, month: yearMonth || new Date().toISOString().slice(0, 7) });
+    const yearWeek = req.query.week;
+    const leaderboard = await getWeeklyLeaderboard(yearWeek);
+    res.json({ leaderboard, week: yearWeek || null });
   } catch (error) {
     res.status(500).json({ error: 'Failed to fetch leaderboard' });
   }

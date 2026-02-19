@@ -1,4 +1,5 @@
 let currentUser = null;
+let currentWeekStart = null;
 
 async function init() {
     const user = JSON.parse(localStorage.getItem('user') || 'null');
@@ -10,19 +11,67 @@ async function init() {
     
     currentUser = user;
     document.getElementById('navUsername').textContent = user.username;
-    
-    const now = new Date();
-    const monthNames = ['Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin',
-                        'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre'];
-    document.getElementById('currentMonth').textContent = `${monthNames[now.getMonth()]} ${now.getFullYear()}`;
-    
-    await loadLeaderboard();
+
+    currentWeekStart = getWeekStart(new Date());
+    bindWeekNavigation();
+    await loadLeaderboard(currentWeekStart);
 }
 
-async function loadLeaderboard() {
+function bindWeekNavigation() {
+    const prevBtn = document.getElementById('prevWeekBtn');
+    const nextBtn = document.getElementById('nextWeekBtn');
+
+    prevBtn.addEventListener('click', () => {
+        currentWeekStart = addDays(currentWeekStart, -7);
+        loadLeaderboard(currentWeekStart);
+    });
+
+    nextBtn.addEventListener('click', () => {
+        currentWeekStart = addDays(currentWeekStart, 7);
+        loadLeaderboard(currentWeekStart);
+    });
+}
+
+function addDays(date, days) {
+    const d = new Date(date.getTime());
+    d.setDate(d.getDate() + days);
+    return d;
+}
+
+function getWeekStart(date) {
+    const d = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+    const day = (d.getDay() + 6) % 7; // Monday=0
+    d.setDate(d.getDate() - day);
+    d.setHours(0, 0, 0, 0);
+    return d;
+}
+
+function getIsoWeekKey(date) {
+    const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+    const dayNum = d.getUTCDay() || 7;
+    d.setUTCDate(d.getUTCDate() + 4 - dayNum);
+    const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+    const weekNo = Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
+    return `${d.getUTCFullYear()}-W${String(weekNo).padStart(2, '0')}`;
+}
+
+function formatWeekLabel(weekStart) {
+    const weekEnd = addDays(weekStart, 6);
+    const monthNames = ['Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin',
+                        'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre'];
+    const startLabel = `${weekStart.getDate()} ${monthNames[weekStart.getMonth()]} ${weekStart.getFullYear()}`;
+    const endLabel = `${weekEnd.getDate()} ${monthNames[weekEnd.getMonth()]} ${weekEnd.getFullYear()}`;
+    return `${startLabel} - ${endLabel}`;
+}
+
+async function loadLeaderboard(weekStart) {
     try {
-        const response = await fetch('/api/leaderboard/monthly');
+        const weekKey = getIsoWeekKey(weekStart);
+        const response = await fetch(`/api/leaderboard/weekly?week=${weekKey}`);
         const data = await response.json();
+
+        const weekLabel = document.getElementById('currentWeek');
+        weekLabel.textContent = `Semaine ${weekKey.replace('-', ' ')} | ${formatWeekLabel(weekStart)}`;
         
         const tbody = document.getElementById('leaderboardBody');
         
@@ -30,7 +79,7 @@ async function loadLeaderboard() {
             tbody.innerHTML = `
                 <tr>
                     <td colspan="5" style="text-align: center; padding: 40px; color: #999;">
-                        Aucun score pour ce mois
+                        Aucun score pour cette semaine
                     </td>
                 </tr>
             `;

@@ -157,19 +157,43 @@ async function updateMonthlyScore(userId, attempts) {
   );
 }
 
-async function getMonthlyLeaderboard(yearMonth = null) {
-  const targetMonth = yearMonth || new Date().toISOString().slice(0, 7);
-  
-  const result = await pool.query(
-    `SELECT u.username, u.profile_picture, ms.total_attempts, ms.games_won
-     FROM monthly_scores ms
-     JOIN users u ON ms.user_id = u.id
-     WHERE ms.year_month = $1
-     ORDER BY ms.total_attempts ASC, ms.games_won DESC
-     LIMIT 100`,
-    [targetMonth]
+function getIsoWeekKey(date = new Date()) {
+  const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+  const dayNum = d.getUTCDay() || 7;
+  d.setUTCDate(d.getUTCDate() + 4 - dayNum);
+  const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+  const weekNo = Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
+  return `${d.getUTCFullYear()}-W${String(weekNo).padStart(2, '0')}`;
+}
+
+async function updateWeeklyScore(userId, attempts) {
+  const yearWeek = getIsoWeekKey(new Date());
+
+  await pool.query(
+    `INSERT INTO weekly_scores (user_id, year_week, total_attempts, games_won)
+     VALUES ($1, $2, $3, 1)
+     ON CONFLICT (user_id, year_week)
+     DO UPDATE SET 
+       total_attempts = weekly_scores.total_attempts + $3,
+       games_won = weekly_scores.games_won + 1,
+       updated_at = NOW()`,
+    [userId, yearWeek, attempts]
   );
-  
+}
+
+async function getWeeklyLeaderboard(yearWeek = null) {
+  const targetWeek = yearWeek || getIsoWeekKey(new Date());
+
+  const result = await pool.query(
+    `SELECT u.username, u.profile_picture, ws.total_attempts, ws.games_won
+     FROM weekly_scores ws
+     JOIN users u ON ws.user_id = u.id
+     WHERE ws.year_week = $1
+     ORDER BY ws.total_attempts ASC, ws.games_won DESC
+     LIMIT 100`,
+    [targetWeek]
+  );
+
   return result.rows;
 }
 
@@ -200,6 +224,7 @@ module.exports = {
   updateProfilePicture,
   updateUserStats,
   updateMonthlyScore,
-  getMonthlyLeaderboard,
-  getUserMonthlyRank
+  updateWeeklyScore,
+  getUserMonthlyRank,
+  getWeeklyLeaderboard
 };

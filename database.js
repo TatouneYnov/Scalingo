@@ -51,6 +51,16 @@ async function initializeDatabase() {
         updated_at TIMESTAMPTZ DEFAULT NOW(),
         UNIQUE(user_id, year_month)
       );
+
+      CREATE TABLE IF NOT EXISTS weekly_scores (
+        id BIGSERIAL PRIMARY KEY,
+        user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        year_week TEXT NOT NULL,
+        total_attempts INTEGER DEFAULT 0,
+        games_won INTEGER DEFAULT 0,
+        updated_at TIMESTAMPTZ DEFAULT NOW(),
+        UNIQUE(user_id, year_week)
+      );
       
       ALTER TABLE daily_scores ADD COLUMN IF NOT EXISTS user_id_fk BIGINT REFERENCES users(id) ON DELETE CASCADE;
       ALTER TABLE champions ADD COLUMN IF NOT EXISTS image_url TEXT;
@@ -61,6 +71,8 @@ async function initializeDatabase() {
       CREATE INDEX IF NOT EXISTS idx_users_username ON users(username);
       CREATE INDEX IF NOT EXISTS idx_monthly_scores_year_month ON monthly_scores(year_month);
       CREATE INDEX IF NOT EXISTS idx_monthly_scores_user_id ON monthly_scores(user_id);
+      CREATE INDEX IF NOT EXISTS idx_weekly_scores_year_week ON weekly_scores(year_week);
+      CREATE INDEX IF NOT EXISTS idx_weekly_scores_user_id ON weekly_scores(user_id);
     `;
     
     await pool.query(migrations);
