@@ -12,29 +12,9 @@ const suggestionsDiv = document.getElementById('suggestions');
 const guessesDiv = document.getElementById('guesses');
 const winMessage = document.getElementById('winMessage');
 const winText = document.getElementById('winText');
-const newGameBtn = document.getElementById('newGameBtn');
 const modeSelector = document.getElementById('modeSelector');
 const leaderboard = document.getElementById('leaderboard');
-const modeIndicator = document.getElementById('modeIndicator');
-const currentModeDisplay = document.getElementById('currentModeDisplay');
-
-function updateModeDisplay() {
-    if (currentMode) {
-        const modeLabel = currentMode === 'unlimited' ? 'Illimité' : currentMode === 'daily' ? 'Daily' : 'Hardcore';
-        currentModeDisplay.textContent = modeLabel;
-        modeIndicator.classList.remove('hidden');
-    } else {
-        modeIndicator.classList.add('hidden');
-    }
-}
-
-function updateNewGameButtonVisibility() {
-    if (currentMode) {
-        newGameBtn.classList.add('hidden');
-    } else {
-        newGameBtn.classList.remove('hidden');
-    }
-}
+const currentModeDisplay = document.getElementById('currentMode');
 
 async function init() {
     try {
@@ -47,8 +27,6 @@ async function init() {
         
         currentUserId = currentUser.id;
         
-        setupNavBar();
-        
         const response = await fetch('/api/champions');
         champions = await response.json();
         
@@ -56,20 +34,18 @@ async function init() {
         currentMode = stored.mode;
         
         setupEventListeners();
-
-        updateNewGameButtonVisibility();
         
         if (!currentMode) {
             showModeSelector();
-        } else if (currentMode === 'unlimited') {
+        } else {
             updateModeDisplay();
-            startGame();
-            loadSavedGuesses();
-            leaderboard.classList.add('hidden');
-        } else if (currentMode === 'daily') {
-            updateModeDisplay();
-            await checkDailyStatus();
-            await loadLeaderboard();
+            if (currentMode === 'unlimited') {
+                startGame();
+                loadSavedGuesses();
+            } else if (currentMode === 'daily') {
+                await checkDailyStatus();
+                await loadLeaderboard();
+            }
         }
         
     } catch (error) {
@@ -78,34 +54,23 @@ async function init() {
     }
 }
 
-function setupNavBar() {
-    const header = document.querySelector('header');
-    const navBar = document.createElement('div');
-    navBar.className = 'nav-bar';
-    navBar.style.cssText = 'display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding: 10px 0;';
-    navBar.innerHTML = `
-        <div class="nav-links" style="display: flex; gap: 20px;">
-            <a href="/" style="color: #2d9f2d; text-decoration: none; font-weight: bold;">🎮 Jouer</a>
-            <a href="/leaderboard.html" style="color: #e0e0e0; text-decoration: none;">🏆 Classement</a>
-            <a href="/profile.html" style="color: #e0e0e0; text-decoration: none;">👤 Profil</a>
-        </div>
-        <div style="display: flex; align-items: center; gap: 15px;">
-            <span style="color: #999;">${currentUser.username}</span>
-            <button onclick="logout()" style="background: #5f2d2d; color: #e0e0e0; border: 1px solid #7f3d3d; padding: 6px 12px; border-radius: 6px; cursor: pointer;">Déconnexion</button>
-        </div>
-    `;
-    header.insertBefore(navBar, header.firstChild);
-}
-
 function showModeSelector() {
     modeSelector.classList.remove('hidden');
 }
 
+function updateModeDisplay() {
+    const modeLabels = {
+        'unlimited': '🎮 Mode Illimité',
+        'daily': '📅 Daily Challenge',
+        'hardcore': '💀 Hardcore'
+    };
+    currentModeDisplay.textContent = modeLabels[currentMode] || currentMode;
+}
+
 async function selectMode(mode) {
+    console.log('selectMode called with:', mode);
     currentMode = mode;
     localStorage.setItem('loldle_user', JSON.stringify({ mode: currentMode, userId: currentUserId }));
-    updateModeDisplay();
-    updateNewGameButtonVisibility();
     
     await fetch('/api/set-mode', {
         method: 'POST',
@@ -119,55 +84,64 @@ async function selectMode(mode) {
     gameWon = false;
     searchInput.value = '';
     searchInput.disabled = false;
-    leaderboard.classList.add('hidden');
+    
+    updateModeDisplay();
     
     if (mode === 'daily') {
+        console.log('Daily mode selected - hiding leaderboard first');
+        // Masquer le leaderboard avant de le recharger
+        leaderboard.classList.add('hidden');
         // Vérifier si l'utilisateur a déjà joué aujourd'hui avant de lancer
+        console.log('Checking daily status...');
         await checkDailyStatus();
+        console.log('About to load leaderboard for daily mode');
         await loadLeaderboard();
+        console.log('Leaderboard loaded for daily mode');
     } else {
+        console.log('Non-daily mode selected');
+        leaderboard.classList.add('hidden');
         await startGame();
     }
 }
 
 async function loadLeaderboard() {
     try {
-        const response = await fetch('/api/daily-leaderboard');
-        const data = await response.json();
+        console.log('===== LOADING LEADERBOARD =====');
         
         const leaderboardList = document.getElementById('leaderboardList');
-        if (data.scores.length === 0) {
+        console.log('leaderboardList element:', leaderboardList);
+        
+        if (!leaderboardList) {
+            console.error('ERROR: leaderboardList element not found!');
+            return;
+        }
+        
+        const response = await fetch('/api/daily-leaderboard');
+        const data = await response.json();
+        console.log('Leaderboard API response:', data);
+        
+        if (data.error) {
+            console.error('API Error:', data.error);
+            leaderboardList.innerHTML = '<p style="color: #ff6b6b;">Erreur lors du chargement du leaderboard</p>';
+            leaderboard.classList.remove('hidden');
+            return;
+        }
+        
+        if (!data.scores || data.scores.length === 0) {
             leaderboardList.innerHTML = '<p>Aucun score pour aujourd\'hui</p>';
         } else {
-            leaderboardList.innerHTML = data.scores.map((score, i) => {
-                let rankDisplay = `#${i + 1}`;
-                if (i === 0) rankDisplay = '🥇';
-                else if (i === 1) rankDisplay = '🥈';
-                else if (i === 2) rankDisplay = '🥉';
-                
-                const isImageUrl = score.profile_picture && (
-                    score.profile_picture.startsWith('http') || 
-                    score.profile_picture.startsWith('/uploads/')
-                );
-                const profilePictureContent = isImageUrl
-                    ? `<img src="${score.profile_picture}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;" onerror="this.style.display='none'">` 
-                    : '<span style="font-size: 16px; color: #666;">👤</span>';
-                
-                return `
-                    <div class="leaderboard-entry">
-                        <span class="rank">${rankDisplay}</span>
-                        <div style="display: flex; align-items: center; gap: 10px;">
-                            <div style="width: 35px; height: 35px; border-radius: 50%; background: #1a1a1a; border: 2px solid #666; display: flex; align-items: center; justify-content: center; overflow: hidden;">
-                                ${profilePictureContent}
-                            </div>
-                            <span class="user">${score.username}</span>
-                        </div>
-                        <span class="attempts">${score.attempts} essai${score.attempts > 1 ? 's' : ''}</span>
-                    </div>
-                `;
-            }).join('');
+            leaderboardList.innerHTML = data.scores.map((score, i) => `
+                <div class="leaderboard-entry">
+                    <span class="rank">#${i + 1}</span>
+                    <span class="user">${score.username}</span>
+                    <span class="attempts">${score.attempts} essai${score.attempts > 1 ? 's' : ''}</span>
+                </div>
+            `).join('');
         }
+        
         leaderboard.classList.remove('hidden');
+        console.log('Leaderboard visible:', !leaderboard.classList.contains('hidden'));
+        console.log('===== LEADERBOARD LOADED =====');
     } catch (error) {
         console.error('Failed to load leaderboard:', error);
     }
@@ -219,7 +193,6 @@ function setupEventListeners() {
     searchInput.addEventListener('input', handleSearchInput);
     searchInput.addEventListener('keydown', handleKeyDown);
     document.addEventListener('click', closeSuggestions);
-    newGameBtn.addEventListener('click', startNewGame);
     
     document.querySelectorAll('.mode-btn').forEach(btn => {
         if (btn.dataset.mode !== 'hardcore') {
@@ -425,7 +398,7 @@ async function handleWin(champion) {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ userId: currentUserId, attempts })
         });
-        loadLeaderboard();
+        await loadLeaderboard();
     }
 }
 
@@ -547,14 +520,6 @@ async function startNewGame() {
         
         showModeSelector();
     }
-}
-
-function logout() {
-    localStorage.removeItem('auth_token');
-    localStorage.removeItem('user');
-    localStorage.removeItem('loldle_user');
-    localStorage.removeItem('loldle_guesses');
-    window.location.href = '/login.html';
 }
 
 init();

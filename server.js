@@ -12,6 +12,8 @@ const {
   getGameId,
   generateNewGameChampion,
   compareChampions,
+  setCurrentUser,
+  setCurrentMode,
   getLeaderboard,
   saveDailyScore,
   hasPlayedToday
@@ -107,11 +109,13 @@ app.post('/api/set-mode', (req, res) => {
 app.get('/api/daily-leaderboard', async (req, res) => {
   try {
     const date = req.query.date || new Date().toISOString().split('T')[0];
+    console.log('Fetching leaderboard for date:', date);
     const leaderboard = await getLeaderboard(date);
+    console.log('Leaderboard data:', leaderboard);
     res.json({ date, scores: leaderboard });
   } catch (error) {
-    console.error('Daily leaderboard error:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    console.error('Error in /api/daily-leaderboard:', error);
+    res.status(500).json({ error: 'Internal server error', details: error.message });
   }
 });
 

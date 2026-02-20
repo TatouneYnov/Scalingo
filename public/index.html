@@ -5,17 +5,24 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Loldle - Devine le Champion</title>
     <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="auth.css">
 </head>
 <body>
-    <div class="container">
+    <nav class="nav-bar">
+        <div class="nav-links">
+            <a href="/" style="color: #2d9f2d; text-decoration: none; font-weight: bold;">🎮 Jouer</a>
+            <a href="/leaderboard.html" style="color: #e0e0e0; text-decoration: none;">🏆 Classement</a>
+            <a href="/profile.html" style="color: #e0e0e0; text-decoration: none;">👤 Profil</a>
+        </div>
+        <div class="user-menu">
+            <span id="navUsername" style="color: #999;"></span>
+            <button class="logout-btn" onclick="logout()">Déconnexion</button>
+        </div>
+    </nav>
         <header>
             <h1>LOLDLAHESS</h1>
             <p class="subtitle">Devine le champion de League of Legends !</p>
-            <div id="modeIndicator" class="mode-indicator hidden">
-                <span class="mode-label">Mode :</span>
-                <span id="currentModeDisplay" class="mode-value">Illimité</span>
-            </div>
-            <button id="newGameBtn" class="new-game-btn">Nouvelle partie</button>
+            <p class="current-mode" id="currentMode"></p>
         </header>
 
         <div id="modeSelector">
@@ -78,6 +85,7 @@
         </div>
     </div>
 
+    <script src="header.js"></script>
     <script src="app.js"></script>
 </body>
 </html>
