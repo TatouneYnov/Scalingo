@@ -2,7 +2,6 @@ require('dotenv').config();
 
 const express = require('express');
 const path = require('path');
-const multer = require('multer');
 const fs = require('fs');
 const {
   initializeDatabase,
@@ -279,34 +278,36 @@ app.post('/api/profile/picture', async (req, res) => {
   }
 });
 
-app.post('/api/profile/upload', upload.single('profilePicture'), async (req, res) => {
+app.post('/api/profile/upload', async (req, res) => {
   try {
-    if (!req.file) {
-      return res.status(400).json({ error: 'No file uploaded' });
-    }
+    const { userId, imageBase64 } = req.body;
     
-    const { userId } = req.body;
     if (!userId) {
-      // Delete the uploaded file if no userId
-      fs.unlinkSync(req.file.path);
       return res.status(400).json({ error: 'User ID is required' });
     }
     
-    // Generate the URL path for the uploaded file
-    const pictureUrl = `/uploads/profiles/${req.file.filename}`;
+    if (!imageBase64) {
+      return res.status(400).json({ error: 'No image data provided' });
+    }
     
-    // Update user's profile picture in database
-    await updateProfilePicture(userId, pictureUrl);
+    // Validate base64 format
+    if (!imageBase64.startsWith('data:image/')) {
+      return res.status(400).json({ error: 'Invalid image format' });
+    }
+    
+    // Check size (base64 is ~33% larger, so 6.5MB base64 = ~5MB original)
+    if (imageBase64.length > 6.5 * 1024 * 1024) {
+      return res.status(400).json({ error: 'Image too large (max 5MB)' });
+    }
+    
+    // Update user's profile picture in database with base64
+    await updateProfilePicture(userId, imageBase64);
     
     res.json({ 
       success: true, 
-      pictureUrl: pictureUrl 
+      pictureUrl: imageBase64 
     });
   } catch (error) {
-    // Clean up uploaded file on error
-    if (req.file) {
-      fs.unlinkSync(req.file.path);
-    }
     console.error('Upload error:', error);
     res.status(500).json({ error: 'Failed to upload profile picture' });
   }
