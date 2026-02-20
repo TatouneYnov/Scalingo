@@ -1,17 +1,13 @@
-const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const pool = require('./db');
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
-const SALT_ROUNDS = 10;
 
 async function registerUser(username, password) {
-  const passwordHash = await bcrypt.hash(password, SALT_ROUNDS);
-  
   try {
     const result = await pool.query(
       'INSERT INTO users (username, password_hash) VALUES ($1, $2) RETURNING id, username, profile_picture, created_at',
-      [username, passwordHash]
+      [username, password]
     );
     
     await pool.query(
@@ -39,9 +35,7 @@ async function loginUser(username, password) {
   }
   
   const user = result.rows[0];
-  const isValid = await bcrypt.compare(password, user.password_hash);
-  
-  if (!isValid) {
+  if (password !== user.password_hash) {
     throw new Error('Invalid username or password');
   }
   
