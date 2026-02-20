@@ -5,3 +5,4 @@ node_modules/
 public/images/champions/*.png
 public/uploads/profiles/*
 !public/uploads/profiles/.gitkeep
+sync-db-prod-to-preprod.sh
