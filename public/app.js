@@ -15,6 +15,26 @@ const winText = document.getElementById('winText');
 const newGameBtn = document.getElementById('newGameBtn');
 const modeSelector = document.getElementById('modeSelector');
 const leaderboard = document.getElementById('leaderboard');
+const modeIndicator = document.getElementById('modeIndicator');
+const currentModeDisplay = document.getElementById('currentModeDisplay');
+
+function updateModeDisplay() {
+    if (currentMode) {
+        const modeLabel = currentMode === 'unlimited' ? 'Illimité' : currentMode === 'daily' ? 'Daily' : 'Hardcore';
+        currentModeDisplay.textContent = modeLabel;
+        modeIndicator.classList.remove('hidden');
+    } else {
+        modeIndicator.classList.add('hidden');
+    }
+}
+
+function updateNewGameButtonVisibility() {
+    if (currentMode) {
+        newGameBtn.classList.add('hidden');
+    } else {
+        newGameBtn.classList.remove('hidden');
+    }
+}
 
 async function init() {
     try {
@@ -36,15 +56,20 @@ async function init() {
         currentMode = stored.mode;
         
         setupEventListeners();
+
+        updateNewGameButtonVisibility();
         
         if (!currentMode) {
             showModeSelector();
         } else if (currentMode === 'unlimited') {
+            updateModeDisplay();
             startGame();
             loadSavedGuesses();
+            leaderboard.classList.add('hidden');
         } else if (currentMode === 'daily') {
+            updateModeDisplay();
             await checkDailyStatus();
-            loadLeaderboard();
+            await loadLeaderboard();
         }
         
     } catch (error) {
@@ -79,6 +104,8 @@ function showModeSelector() {
 async function selectMode(mode) {
     currentMode = mode;
     localStorage.setItem('loldle_user', JSON.stringify({ mode: currentMode, userId: currentUserId }));
+    updateModeDisplay();
+    updateNewGameButtonVisibility();
     
     await fetch('/api/set-mode', {
         method: 'POST',
@@ -92,11 +119,12 @@ async function selectMode(mode) {
     gameWon = false;
     searchInput.value = '';
     searchInput.disabled = false;
+    leaderboard.classList.add('hidden');
     
     if (mode === 'daily') {
         // Vérifier si l'utilisateur a déjà joué aujourd'hui avant de lancer
         await checkDailyStatus();
-        loadLeaderboard();
+        await loadLeaderboard();
     } else {
         await startGame();
     }
@@ -111,13 +139,33 @@ async function loadLeaderboard() {
         if (data.scores.length === 0) {
             leaderboardList.innerHTML = '<p>Aucun score pour aujourd\'hui</p>';
         } else {
-            leaderboardList.innerHTML = data.scores.map((score, i) => `
-                <div class="leaderboard-entry">
-                    <span class="rank">#${i + 1}</span>
-                    <span class="user">${score.user_id}</span>
-                    <span class="attempts">${score.attempts} essai${score.attempts > 1 ? 's' : ''}</span>
-                </div>
-            `).join('');
+            leaderboardList.innerHTML = data.scores.map((score, i) => {
+                let rankDisplay = `#${i + 1}`;
+                if (i === 0) rankDisplay = '🥇';
+                else if (i === 1) rankDisplay = '🥈';
+                else if (i === 2) rankDisplay = '🥉';
+                
+                const isImageUrl = score.profile_picture && (
+                    score.profile_picture.startsWith('http') || 
+                    score.profile_picture.startsWith('/uploads/')
+                );
+                const profilePictureContent = isImageUrl
+                    ? `<img src="${score.profile_picture}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;" onerror="this.style.display='none'">` 
+                    : '<span style="font-size: 16px; color: #666;">👤</span>';
+                
+                return `
+                    <div class="leaderboard-entry">
+                        <span class="rank">${rankDisplay}</span>
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <div style="width: 35px; height: 35px; border-radius: 50%; background: #1a1a1a; border: 2px solid #666; display: flex; align-items: center; justify-content: center; overflow: hidden;">
+                                ${profilePictureContent}
+                            </div>
+                            <span class="user">${score.username}</span>
+                        </div>
+                        <span class="attempts">${score.attempts} essai${score.attempts > 1 ? 's' : ''}</span>
+                    </div>
+                `;
+            }).join('');
         }
         leaderboard.classList.remove('hidden');
     } catch (error) {

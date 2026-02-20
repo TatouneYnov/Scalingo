@@ -1,7 +1,11 @@
-const pool = require('./db');
+const { Pool } = require('pg');
 
-let currentUserId = null;
-let currentMode = 'unlimited';
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
+});
+
+
 
 async function initializeDatabase() {
   try {
@@ -80,14 +84,6 @@ async function initializeDatabase() {
   } catch (error) {
     console.error('❌ Failed to initialize database:', error.message);
   }
-}
-
-function setCurrentUser(userId) {
-  currentUserId = userId;
-}
-
-function setCurrentMode(mode) {
-  currentMode = mode;
 }
 
 function mapChampionRow(row) {
@@ -261,7 +257,7 @@ function compareGenre(guessGenre, targetGenre) {
 async function getLeaderboard(date = null) {
   const targetDate = date || new Date().toISOString().split('T')[0];
   const result = await pool.query(
-    'SELECT user_id, attempts, completed_at FROM daily_scores WHERE date = $1 ORDER BY attempts ASC, completed_at ASC',
+    'SELECT ds.user_id, ds.attempts, ds.completed_at, u.username, u.profile_picture FROM daily_scores ds JOIN users u ON ds.user_id_fk = u.id WHERE ds.date::text = $1 ORDER BY ds.attempts ASC, ds.completed_at ASC',
     [targetDate]
   );
   return result.rows;
@@ -270,15 +266,15 @@ async function getLeaderboard(date = null) {
 async function saveDailyScore(userId, attempts) {
   const today = new Date().toISOString().split('T')[0];
   await pool.query(
-    'INSERT INTO daily_scores (date, user_id, attempts) VALUES ($1, $2, $3) ON CONFLICT (date, user_id) DO UPDATE SET attempts = $3',
-    [today, userId, attempts]
+    'INSERT INTO daily_scores (date, user_id_fk, user_id, attempts) VALUES ($1, $2, $3, $4) ON CONFLICT (date, user_id) DO UPDATE SET attempts = $4',
+    [today, userId, userId.toString(), attempts]
   );
 }
 
 async function hasPlayedToday(userId) {
   const today = new Date().toISOString().split('T')[0];
   const result = await pool.query(
-    'SELECT attempts FROM daily_scores WHERE date = $1 AND user_id = $2',
+    'SELECT attempts FROM daily_scores WHERE date = $1 AND user_id_fk = $2',
     [today, userId]
   );
   return result.rows.length > 0 ? result.rows[0] : null;
@@ -292,8 +288,6 @@ module.exports = {
   generateNewGameChampion,
   getGameId,
   compareChampions,
-  setCurrentUser,
-  setCurrentMode,
   getLeaderboard,
   saveDailyScore,
   hasPlayedToday

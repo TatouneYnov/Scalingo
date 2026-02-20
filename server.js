@@ -12,8 +12,6 @@ const {
   getGameId,
   generateNewGameChampion,
   compareChampions,
-  setCurrentUser,
-  setCurrentMode,
   getLeaderboard,
   saveDailyScore,
   hasPlayedToday
@@ -112,6 +110,7 @@ app.get('/api/daily-leaderboard', async (req, res) => {
     const leaderboard = await getLeaderboard(date);
     res.json({ date, scores: leaderboard });
   } catch (error) {
+    console.error('Daily leaderboard error:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 });

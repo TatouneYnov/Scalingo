@@ -11,6 +11,10 @@
         <header>
             <h1>LOLDLAHESS</h1>
             <p class="subtitle">Devine le champion de League of Legends !</p>
+            <div id="modeIndicator" class="mode-indicator hidden">
+                <span class="mode-label">Mode :</span>
+                <span id="currentModeDisplay" class="mode-value">Illimité</span>
+            </div>
             <button id="newGameBtn" class="new-game-btn">Nouvelle partie</button>
         </header>
 
@@ -40,11 +44,6 @@
             <div id="suggestions" class="suggestions"></div>
         </div>
 
-        <div id="leaderboard" class="leaderboard hidden">
-            <h3>Classement du jour</h3>
-            <div id="leaderboardList"></div>
-        </div>
-
         <div id="guesses" class="guesses-container"></div>
 
         <div id="winMessage" class="win-message hidden">
@@ -71,6 +70,11 @@
                     <span>Incorrect</span>
                 </div>
             </div>
+        </div>
+
+        <div id="leaderboard" class="leaderboard hidden">
+            <h3>Classement du jour</h3>
+            <div id="leaderboardList"></div>
         </div>
     </div>
 
