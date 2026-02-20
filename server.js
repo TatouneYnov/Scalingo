@@ -321,3 +321,50 @@ app.get('/api/leaderboard/weekly', async (req, res) => {
     res.status(500).json({ error: 'Failed to fetch leaderboard' });
   }
 });
+
+// Route de test - génère du trafic visible dans les métriques
+app.get('/api/test', async (req, res) => {
+  const count = parseInt(req.query.count) || 10;
+  console.log(`📊 [TEST] Starting ${count} requests...`);
+  
+  for (let i = 0; i < count; i++) {
+    console.log(`📊 [TEST] Request ${i + 1}/${count} - Timestamp: ${new Date().toISOString()}`);
+  }
+  
+  console.log(`✅ [TEST] Completed ${count} requests - Check metrics!`);
+  res.json({ status: 'ok', count, message: 'Check metrics for activity spike' });
+});
+
+// Route de stress massive - génère beaucoup de requêtes (sans tuer le serveur)
+app.get('/api/stress', async (req, res) => {
+  const intensity = parseInt(req.query.intensity) || 500;
+  console.log(`🔥 [STRESS] Starting ${intensity} sequential queries!`);
+  
+  const start = Date.now();
+  let success = 0;
+  let failed = 0;
+  
+  // Requêtes en série pour éviter de surcharger le pool
+  for (let i = 0; i < intensity; i++) {
+    try {
+      await pool.query('SELECT 1');
+      success++;
+      if (i % 50 === 0) console.log(`📊 [STRESS] Progress: ${i}/${intensity}`);
+    } catch (err) {
+      failed++;
+      console.error(`❌ [STRESS] Error: ${err.message}`);
+    }
+  }
+  
+  const duration = Date.now() - start;
+  
+  console.log(`✅ [STRESS] Completed! Success: ${success}, Failed: ${failed}, Duration: ${duration}ms`);
+  res.json({ 
+    status: 'completed',
+    intensity,
+    success,
+    failed,
+    duration,
+    message: `Generated ${intensity} sequential requests in ${duration}ms!` 
+  });
+});
