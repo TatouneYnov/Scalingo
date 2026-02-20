@@ -2,6 +2,7 @@ require('dotenv').config();
 
 const express = require('express');
 const path = require('path');
+const multer = require('multer');
 const fs = require('fs');
 const {
   initializeDatabase,
@@ -35,6 +36,38 @@ const app = express();
 
 app.use(express.json());
 app.use(express.static('public'));
+
+// Multer configuration for profile picture uploads
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    const uploadDir = path.join(__dirname, 'public', 'uploads', 'profiles');
+    if (!fs.existsSync(uploadDir)) {
+      fs.mkdirSync(uploadDir, { recursive: true });
+    }
+    cb(null, uploadDir);
+  },
+  filename: function (req, file, cb) {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    cb(null, 'profile-' + uniqueSuffix + path.extname(file.originalname));
+  }
+});
+
+const fileFilter = (req, file, cb) => {
+  const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+  if (allowedTypes.includes(file.mimetype)) {
+    cb(null, true);
+  } else {
+    cb(new Error('Invalid file type. Only JPEG, PNG, GIF, and WebP are allowed.'), false);
+  }
+};
+
+const upload = multer({
+  storage: storage,
+  fileFilter: fileFilter,
+  limits: {
+    fileSize: 5 * 1024 * 1024 // 5MB max
+  }
+});
 
 async function start() {
   await initializeDatabase();
@@ -246,36 +279,34 @@ app.post('/api/profile/picture', async (req, res) => {
   }
 });
 
-app.post('/api/profile/upload', async (req, res) => {
+app.post('/api/profile/upload', upload.single('profilePicture'), async (req, res) => {
   try {
-    const { userId, imageBase64 } = req.body;
+    if (!req.file) {
+      return res.status(400).json({ error: 'No file uploaded' });
+    }
     
+    const { userId } = req.body;
     if (!userId) {
+      // Delete the uploaded file if no userId
+      fs.unlinkSync(req.file.path);
       return res.status(400).json({ error: 'User ID is required' });
     }
     
-    if (!imageBase64) {
-      return res.status(400).json({ error: 'No image data provided' });
-    }
+    // Generate the URL path for the uploaded file
+    const pictureUrl = `/uploads/profiles/${req.file.filename}`;
     
-    // Validate base64 format
-    if (!imageBase64.startsWith('data:image/')) {
-      return res.status(400).json({ error: 'Invalid image format' });
-    }
-    
-    // Check size (base64 is ~33% larger, so 6.5MB base64 = ~5MB original)
-    if (imageBase64.length > 6.5 * 1024 * 1024) {
-      return res.status(400).json({ error: 'Image too large (max 5MB)' });
-    }
-    
-    // Update user's profile picture in database with base64
-    await updateProfilePicture(userId, imageBase64);
+    // Update user's profile picture in database
+    await updateProfilePicture(userId, pictureUrl);
     
     res.json({ 
       success: true, 
-      pictureUrl: imageBase64 
+      pictureUrl: pictureUrl 
     });
   } catch (error) {
+    // Clean up uploaded file on error
+    if (req.file) {
+      fs.unlinkSync(req.file.path);
+    }
     console.error('Upload error:', error);
     res.status(500).json({ error: 'Failed to upload profile picture' });
   }

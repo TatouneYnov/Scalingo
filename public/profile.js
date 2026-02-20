@@ -41,8 +41,8 @@ async function loadProfile() {
         
         const pictureEl = document.getElementById('profilePicture');
         if (profile.profile_picture && profile.profile_picture !== 'default.png') {
-            // Afficher les images base64 ou uploadées
-            if (profile.profile_picture.startsWith('data:image/') || profile.profile_picture.startsWith('/uploads/') || profile.profile_picture.startsWith('http')) {
+            // Afficher uniquement les images uploadées
+            if (profile.profile_picture.startsWith('/uploads/') || profile.profile_picture.startsWith('http')) {
                 pictureEl.innerHTML = `<img src="${profile.profile_picture}" style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover;">`;
             } else {
                 // Icône par défaut pour tout le reste
@@ -86,25 +86,13 @@ async function uploadCustomPicture(file) {
     statusEl.style.color = '#999';
     
     try {
-        // Convert image to base64
-        const reader = new FileReader();
-        const base64Promise = new Promise((resolve, reject) => {
-            reader.onload = () => resolve(reader.result);
-            reader.onerror = reject;
-            reader.readAsDataURL(file);
-        });
-        
-        const imageBase64 = await base64Promise;
+        const formData = new FormData();
+        formData.append('profilePicture', file);
+        formData.append('userId', currentUser.id);
         
         const response = await fetch('/api/profile/upload', {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                userId: currentUser.id,
-                imageBase64: imageBase64
-            })
+            body: formData
         });
         
         const data = await response.json();

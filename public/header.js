@@ -13,7 +13,7 @@ async function setupHeader() {
         
         let profileHtml = '👤';
         if (profile.profile_picture && profile.profile_picture !== 'default.png') {
-            if (profile.profile_picture.startsWith('data:image/') || profile.profile_picture.startsWith('/uploads/') || profile.profile_picture.startsWith('http')) {
+            if (profile.profile_picture.startsWith('/uploads/') || profile.profile_picture.startsWith('http')) {
                 profileHtml = `<img src="${profile.profile_picture}" style="width: 35px; height: 35px; border-radius: 50%; border: 2px solid #2d9f2d; object-fit: cover;">`;
             }
         }
